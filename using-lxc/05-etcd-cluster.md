@@ -32,8 +32,9 @@ Extract and install the etcd server and the etcdctl command line utility:
 
 The instance internal IP address will be used to serve client requests and communicate with etcd cluster peers. Retrieve the internal IP address for the current compute instance:
 ##### Different for each controller
-    INTERNAL_IP=10.71.134.162
-
+```
+INTERNAL_IP=$(hostname -i)
+```
 Each etcd member must have a unique name within an etcd cluster. Set the etcd name to match the hostname of the current compute instance:
 
     ETCD_NAME=$(hostname -s)
