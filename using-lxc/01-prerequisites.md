@@ -51,7 +51,7 @@ paste this
 ---
     lxc profile list
 
-![alt text](image.png)
+![alt text](img-ref/image.png)
 
 
 ### Creating nodes for controller and worker
@@ -61,13 +61,13 @@ paste this
     lxc launch ubuntu:22.04 controller-0 --profile k8s
     lxc launch ubuntu:22.04 controller-1 --profile k8s
     lxc launch ubuntu:22.04 controller-2 --profile k8s
-![alt text](image-1.png)
+![alt text](img-ref/image-1.png)
 #### 3 Worker nodes
 
     lxc launch ubuntu:22.04 worker-0 --profile k8s
     lxc launch ubuntu:22.04 worker-1 --profile k8s
     lxc launch ubuntu:22.04 worker-2 --profile k8s
-![alt text](image-2.png)
+![alt text](img-ref/image-2.png)
 
 #### A haproxy to server as a loadbalancer for our controllers
 <!-- 
@@ -78,7 +78,7 @@ lxc launch centos/7 haproxy
     lxc launch images:centos/7 haproxy -->
 
     lxc launch images:ubuntu:22.04 haproxy
-![alt text](image-3.png)
+![alt text](img-ref/image-3.png)
 ### Setup the haproxy
 
 - login in haproxy container
@@ -133,7 +133,7 @@ check
     systemctl enable haproxy
     systemctl status haproxy
     netstat -nltp
-![alt text](image-4.png)
+![alt text](img-ref/image-4.png)
 
 
 # Installing the Client Tools
@@ -167,7 +167,7 @@ Verify cfssl and cfssljson version, must higher than 1.4.1:
     cfssl version
 
     cfssljson --version
-![alt text](image-5.png)
+![alt text](img-ref/image-5.png)
 ## 2. Install kubectl
 
 Kubernetes provides a command line tool for communicating with a Kubernetes cluster's control plane, using the Kubernetes API.
@@ -183,4 +183,4 @@ Kubernetes provides a command line tool for communicating with a Kubernetes clus
 ### Verify
 
     kubectl version --client
-![alt text](image-6.png)
+![alt text](img-ref/image-6.png)

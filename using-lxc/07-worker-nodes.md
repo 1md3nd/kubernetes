@@ -199,7 +199,7 @@ tlsPrivateKeyFile: "/var/lib/kubelet/${WORKER_NAME}-key.pem"
 EOF
 ```
 
-Create the kubelet.service systemd unit file:
+Create the kubelet.service systemd unit file:cd
 ```
 cat <<EOF | sudo tee /etc/systemd/system/kubelet.service
 [Unit]
@@ -270,4 +270,7 @@ EOF
 systemctl daemon-reload
 systemctl restart kube-proxy
 ```
-```
+
+#### PROBLEMS
+
+![alt text](image.png)

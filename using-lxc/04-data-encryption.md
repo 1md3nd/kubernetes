@@ -28,7 +28,7 @@ Create the encryption-config.yaml encryption config file:
           - identity: {}
     EOF
 
-![alt text](image-17.png)
+![alt text](img-ref/image-17.png)
 
 ### Copy the encryption-config.yaml encryption config file to each controller instance:
 
@@ -37,4 +37,4 @@ Create the encryption-config.yaml encryption config file:
     lxc file push encryption-config.yaml ${instance}/root/
     done
 
-![alt text](image-18.png)
+![alt text](img-ref/image-18.png)

@@ -50,7 +50,7 @@ The contianer internal IP address will be used to advertise the API Server to me
 #### check
 
     echo $INTERNAL_IP
-![alt text](image-21.png)
+![alt text](img-ref/image-21.png)
 
 Create the kube-apiserver.service systemd unit file:
 
@@ -178,7 +178,7 @@ Allow up to 10 seconds for the Kubernetes API Server to fully initialize.
 
     kubectl get componentstatuses --kubeconfig admin.kubeconfig
 
-![alt text](image-22.png)
+![alt text](img-ref/image-22.png)
 
 
 ## RBAC for Kubelet Authorization
@@ -237,4 +237,4 @@ This is ip of haproxy
     curl --cacert ca.pem https://${KUBERNETES_PUBLIC_ADDRESS}:6443/version
 
 
-![alt text](image-23.png)
+![alt text](img-ref/image-23.png)

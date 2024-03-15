@@ -66,7 +66,7 @@ Generate a kubeconfig file for each worker node:
     done
 
 RESULT
-![alt text](image-12.png)
+![alt text](img-ref/image-12.png)
 ---
 ### The kube-proxy Kubernetes Configuration File
 Generate a kubeconfig file for the kube-proxy service:
@@ -184,7 +184,7 @@ RESULT
 ---
 ### FINAL
 
-![final-result-image](image-14.png)
+![final-result-image](img-ref/image-14.png)
 
 ##### Now we are done with genration of kubeconfig files for each component of respected continers
 ---
@@ -198,11 +198,11 @@ RESULT
     done
 
 
-![alt text](image-15.png)
+![alt text](img-ref/image-15.png)
 #### Copy the appropriate kube-controller-manager and kube-scheduler kubeconfig files to each controller instance:
     
     for instance in controller-0 controller-1 controller-2; do
         lxc file push admin.kubeconfig kube-controller-manager.kubeconfig kube-scheduler.kubeconfig ${instance}/root/
     done
     
-![alt text](image-16.png)
+![alt text](img-ref/image-16.png)

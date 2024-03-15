@@ -201,7 +201,7 @@ RESULT
         sudo scp -i ../pvt-key.pem ${instance}.kubeconfig kube-proxy.kubeconfig ubuntu@${ins_ip}:~/
     done
 
-![alt text](image-1.png)
+![alt text](img-ref/image-1.png)
 
 #### Copy the appropriate kube-controller-manager and kube-scheduler kubeconfig files to each controller instance:
 
@@ -217,4 +217,4 @@ RESULT
         sudo scp -i ../pvt-key.pem admin.kubeconfig kube-controller-manager.kubeconfig kube-scheduler.kubeconfig ubuntu@${ins_ip}:~/
     done
 
-![alt text](image.png)
+![alt text](img-ref/image.png)

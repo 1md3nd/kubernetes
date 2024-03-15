@@ -73,7 +73,7 @@ Generate the CA configuration file, certificate, and private key:
     }
 
 OUTPUT 
-![alt text](image-7.png)
+![alt text](img-ref/image-7.png)
 
 2. Client and Server Certificates
 
@@ -112,7 +112,7 @@ Generate the admin client certificate and private key:
 
 OUTPUT
 
-![alt text](image-8.png)
+![alt text](img-ref/image-8.png)
 
 ## 3. The Kubelet Client Certificates
 
@@ -157,7 +157,7 @@ Generate a certificate and private key for each Kubernetes worker node:
     done
 
     OUTPUT
-![alt text](image-9.png)
+![alt text](img-ref/image-9.png)
 
 ## 4. The Controller Manager Client Certificate
 Generate the kube-controller-manager client certificate and private key:
@@ -397,7 +397,7 @@ OUTPUT
     done
 
 RESULT
-![alt text](image-10.png)
+![alt text](img-ref/image-10.png)
 
 
 ### 2. Transfer all the associate key of controller to controller 
@@ -408,4 +408,4 @@ RESULT
 
 RESULT
 
- ![alt text](image-11.png)
+ ![alt text](img-ref/image-11.png)

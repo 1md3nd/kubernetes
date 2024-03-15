@@ -41,7 +41,7 @@ Each etcd member must have a unique name within an etcd cluster. Set the etcd na
     echo $INTERNAL_IP $ETCD_NAME 
 
 
-![alt text](image-19.png)
+![alt text](img-ref/image-19.png)
 Create the etcd.service systemd unit file:
 ##### Same for each controller
 
@@ -95,4 +95,4 @@ Start the etcd Server
     --cert=/etc/etcd/kubernetes.pem \
     --key=/etc/etcd/kubernetes-key.pem
 
-![alt text](image-20.png)
+![alt text](img-ref/image-20.png)

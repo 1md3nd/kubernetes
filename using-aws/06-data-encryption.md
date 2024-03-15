@@ -47,4 +47,4 @@ Copy the encryption-config.yaml encryption config file to each controller instan
         sudo scp -i ../pvt-key.pem encryption-config.yaml ubuntu@${ins_ip}:~/
     done
 
-![alt text](image-2.png)
+![alt text](img-ref/image-2.png)
