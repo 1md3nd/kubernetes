@@ -5,20 +5,20 @@ In this case I am use an AWS EC2 instance
 Create an EC2 instance of type t2.xlarge size which will be sufficient for running 6 lxc containers each with 2 CPUs and 2Gi of memory.
 
 ### Installing the LXC on Ubuntu
-
-    sudo apt-get update && sudo apt-get install lxc -y
-    sudo systemctl status lxc
-    sudo snap install lxd
-    lxd init
-
+```
+sudo apt-get update && sudo apt-get install lxc -y
+sudo systemctl status lxc
+sudo snap install lxd
+lxd init
+```
 - Default for everything except this:
   Name of the storage backend to use (btrfs, dir, lvm) [default=btrfs]: dir
 
 ### Let's create profile for k8s cluster
-
-    lxc profile create k8s
-    sudo lxc profile edit k8s
-
+```
+lxc profile create k8s
+sudo lxc profile edit k8s
+```
 ---
 
 paste this
