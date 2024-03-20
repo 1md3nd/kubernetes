@@ -59,18 +59,20 @@ paste this
 ### Creating nodes for controller and worker
 
 #### 3 Controller nodes for high avaliablity
-
-    lxc launch ubuntu:22.04 controller-0 --profile k8s
-    lxc launch ubuntu:22.04 controller-1 --profile k8s
-    lxc launch ubuntu:22.04 controller-2 --profile k8s
+```
+lxc launch ubuntu:22.04 controller-0 --profile k8s
+lxc launch ubuntu:22.04 controller-1 --profile k8s
+lxc launch ubuntu:22.04 controller-2 --profile k8s
+```
 
 ![alt text](img-ref/image-1.png)
 
 #### 3 Worker nodes
-
-    lxc launch ubuntu:22.04 worker-0 --profile k8s
-    lxc launch ubuntu:22.04 worker-1 --profile k8s
-    lxc launch ubuntu:22.04 worker-2 --profile k8s
+```
+lxc launch ubuntu:22.04 worker-0 --profile k8s
+lxc launch ubuntu:22.04 worker-1 --profile k8s
+lxc launch ubuntu:22.04 worker-2 --profile k8s
+```
 
 ![alt text](img-ref/image-2.png)
 

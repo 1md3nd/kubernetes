@@ -7,13 +7,9 @@ Now we are going to setup the worker nodes for that we will be creating these se
 
 ## Download and Install Worker Binaries
     wget -q --show-progress --https-only --timestamping \
-    https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.21.0/crictl-v1.21.0-linux-amd64.tar.gz \
-    https://github.com/opencontainers/runc/releases/download/v1.0.0-rc93/runc.amd64 \
-    https://github.com/containernetworking/plugins/releases/download/v0.9.1/cni-plugins-linux-amd64-v0.9.1.tgz \
-    https://github.com/containerd/containerd/releases/download/v1.7.14/containerd-1.7.14-linux-amd64.tar.gz \
-    https://storage.googleapis.com/kubernetes-release/release/v1.21.0/bin/linux/amd64/kubectl \
-    https://storage.googleapis.com/kubernetes-release/release/v1.23.0/bin/linux/amd64/kube-proxy \
-    https://storage.googleapis.com/kubernetes-release/release/v1.21.0/bin/linux/amd64/kubelet
+    https://storage.googleapis.com/kubernetes-release/release/v1.29.0/bin/linux/amd64/kubectl \
+    https://storage.googleapis.com/kubernetes-release/release/v1.29.0/bin/linux/amd64/kube-proxy \
+    https://storage.googleapis.com/kubernetes-release/release/v1.29.0/bin/linux/amd64/kubelet
 
 Installation directories:
 
@@ -27,17 +23,38 @@ Installation directories:
 
 
 Installing work binaries:
+```
+chmod +x kubectl kube-proxy kubelet 
+sudo mv kubectl kube-proxy kubelet /usr/local/bin/
+```
 
-    mkdir containerd
-    tar -xvf crictl-v1.21.0-linux-amd64.tar.gz
-    tar -xvf containerd-1.4.4-linux-amd64.tar.gz -C containerd
-    sudo tar -xvf cni-plugins-linux-amd64-v0.9.1.tgz -C /opt/cni/bin/
-    sudo mv runc.amd64 runc
-    chmod +x crictl kubectl kube-proxy kubelet runc 
-    sudo mv crictl kubectl kube-proxy kubelet runc /usr/local/bin/
-    sudo mv containerd/bin/* /bin/
+```
+{
+wget https://github.com/containerd/containerd/releases/download/v1.6.8/containerd-1.6.8-linux-amd64.tar.gz
+
+wget https://github.com/opencontainers/runc/releases/download/v1.1.3/runc.amd64
 
 
+sudo tar Cxzvf /usr/local containerd-1.6.8-linux-amd64.tar.gz
+sudo install -m 755 runc.amd64 /usr/local/sbin/runc
+
+# Now, we need the Container Network Interface, which is used to provide the necessary networking functionality. Download CNI with:
+
+wget https://github.com/containernetworking/plugins/releases/download/v1.1.1/cni-plugins-linux-amd64-v1.1.1.tgz
+
+
+sudo mkdir -p /opt/cni/bin
+sudo tar Cxzvf /opt/cni/bin cni-plugins-linux-amd64-v1.1.1.tgz
+
+sudo mkdir /etc/containerd
+
+containerd config default | sudo tee /etc/containerd/config.toml
+sudo sed -i 's/SystemdCgroup \= false/SystemdCgroup \= true/g' /etc/containerd/config.toml
+
+sudo curl -L https://raw.githubusercontent.com/containerd/containerd/main/containerd.service -o /etc/systemd/system/containerd.service
+
+}
+```
 ## Configure CNI Networking
 Retrieve the Pod CIDR range for the current container:
 
@@ -55,7 +72,7 @@ Create the bridge network configuration file:
 
     cat <<EOF | sudo tee /etc/cni/net.d/10-bridge.conf
     {
-        "cniVersion": "0.3.1",
+        "cniVersion": "0.4.0",
         "name": "bridge",
         "type": "bridge",
         "bridge": "cnio0",
@@ -76,7 +93,7 @@ Create the loopback network configuration file:
 
     cat <<EOF | sudo tee /etc/cni/net.d/99-loopback.conf
     {
-        "cniVersion": "0.3.1",
+        "cniVersion": "0.4.0",
         "name": "lo",
         "type": "loopback"
     }
@@ -85,57 +102,45 @@ Create the loopback network configuration file:
 
 ## Configure containerd
 Create the containerd configuration file:
-
-    sudo mkdir -p /etc/containerd/
 ```
-- v 1.7
-cat << EOF | sudo tee /etc/containerd/config.toml
-version = 2
-[plugins]
-  [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
-    SystemdCgroup = true
-  [plugins.cri.containerd]
-    snapshotter = "overlayfs"
-    [plugins."io.containerd.grpc.v1.cri".containerd]
-      runtime_type = "io.containerd.runtime.v1.linux"
-      runtime_engine = "/usr/local/bin/runc"
-      runtime_root = ""
-EOF
+sudo mkdir -p /etc/containerd/
 ```
 ```
 - v 1.7
+- DONT RUN THIS COMMAND
 
-cat << EOF | sudo tee /etc/containerd/config.toml
+/etc/containerd/config.toml
+
 version = 2
 
-[plugins]
-  [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
-    SystemdCgroup = true
+[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+  SystemdCgroup = true
 
 [plugins."io.containerd.grpc.v1.cri".containerd]
-  runtime_type = "io.containerd.runtime.v1.linux"
-  runtime_engine = "/usr/local/bin/runc"
-  runtime_root = ""
-
-[plugins.cri.containerd]
   snapshotter = "overlayfs"
+  [plugins."io.containerd.grpc.v1.cri".containerd.default_runtime]
+    runtime_type = "io.containerd.runc.v2"  # Updated to use runtime v2
+    runtime_engine = "/usr/local/bin/runc"
+    runtime_root = ""
+
+[plugins."io.containerd.grpc.v1.cri".containerd.cgroup]
+  v2 = true  # Removed deprecated 'path' and 'default_slice' settings
 EOF
 ```
+> DONT RUN THIS COMMAND
+
+Edit the containerd.service systemd unit file:
 ```
--v 1.4.4
-cat << EOF | sudo tee /etc/containerd/config.toml
-[plugins]
-  [plugins.cri.containerd]
-    snapshotter = "overlayfs"
-    [plugins.cri.containerd.default_runtime]
-      runtime_type = "io.containerd.runtime.v1.linux"
-      runtime_engine = "/usr/local/bin/runc"
-      runtime_root = ""
-EOF
+nano /etc/systemd/system/containerd.service
 ```
-Create the containerd.service systemd unit file:
+REMOVE LINE 
 ```
-cat <<EOF | sudo tee /etc/systemd/system/containerd.service
+ExecStartPre=/sbin/modprobe overlay
+```
+It should look like this 
+```
+/etc/systemd/system/containerd.service
+
 [Unit]
 Description=containerd container runtime
 Documentation=https://containerd.io
@@ -156,10 +161,7 @@ LimitCORE=infinity
 WantedBy=multi-user.target
 EOF
 ```
-```
-systemctl daemon-reload
-systemctl restart containerd
-```
+
 ## Configure the Kubelet
     
     WORKER_NAME=$(hostname -s)
@@ -189,8 +191,6 @@ authorization:
 clusterDomain: "cluster.local"
 clusterDNS:
   - "10.32.0.10"
-featureGates:
-  CSIMigration: false
 podCIDR: "${POD_CIDR}"
 resolvConf: "/run/systemd/resolve/resolv.conf"
 runtimeRequestTimeout: "15m"
@@ -211,11 +211,8 @@ Requires=containerd.service
 [Service]
 ExecStart=/usr/local/bin/kubelet \\
   --config=/var/lib/kubelet/kubelet-config.yaml \\
-  --container-runtime=remote \\
   --container-runtime-endpoint=unix:///var/run/containerd/containerd.sock \\
-  --image-pull-progress-deadline=2m \\
   --kubeconfig=/var/lib/kubelet/kubeconfig \\
-  --network-plugin=cni \\
   --register-node=true \\
   --fail-swap-on=false \\
   --v=2
@@ -230,9 +227,9 @@ EOF
 <!-- --cpu-manager-policy=static \\
     --kube-reserved=cpu=1,memory=2Gi,ephemeral-storage=1Gi \\
     --system-reserved=cpu=1,memory=2Gi,ephemeral-storage=1Gi \\ -->
----
+<!-- ---
     systemctl daemon-reload
-    systemctl restart kubelet
+    systemctl restart kubelet -->
 ## Configure the Kubernetes Proxy
 
     sudo mv kube-proxy.kubeconfig /var/lib/kube-proxy/kubeconfig
@@ -268,7 +265,8 @@ EOF
 ```
 ```
 systemctl daemon-reload
-systemctl restart kube-proxy
+sudo systemctl enable --now containerd kubelet kube-proxy
+systemctl restart containerd kubelet kube-proxy
 ```
 
 #### PROBLEMS
