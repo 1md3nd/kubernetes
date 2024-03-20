@@ -1,0 +1,1000 @@
+  223  --name ${ETCD_NAME} \\
+  224  --cert-file=/etc/etcd/kubernetes.pem \\
+  225  --key-file=/etc/etcd/kubernetes-key.pem \\
+  226  --peer-cert-file=/etc/etcd/kubernetes.pem \\
+  227  --peer-key-file=/etc/etcd/kubernetes-key.pem \\
+  228  --trusted-ca-file=/etc/etcd/ca.pem \\
+  229  --peer-trusted-ca-file=/etc/etcd/ca.pem \\
+  230  --peer-client-cert-auth \\
+  231  --client-cert-auth \\
+  232  --initial-advertise-peer-urls 'https://${INTERNAL_IP}:2380' \\
+  233  --listen-peer-urls 'https://${INTERNAL_IP}:2380' \\
+  234  --listen-client-urls 'https://${INTERNAL_IP}:2379','https://127.0.0.1:2379' \\
+  235  --advertise-client-urls 'https://${INTERNAL_IP}:2379' \\
+  236  --initial-cluster-token etcd-cluster-0 \\
+  237  --initial-cluster controller-0='https://${CONTROLLER_0}:2380',controller-1='https://${CONTROLLER_1}:2380',controller-2='https://${CONTROLLER_2}:2380' \\
+  238  --initial-cluster-state new \\
+  239  --data-dir=/var/lib/etcd
+  240  Restart=on-failure
+  241  RestartSec=5
+  242  [Install]
+  243  WantedBy=multi-user.target
+  244  EOF
+  245  { sudo systemctl daemon-reload; sudo systemctl enable etcd; sudo systemctl start etcd; }
+  246  systemctl status etcd
+  247  exit
+  248  ls
+  249  systemctl status kube-apiserver
+  250  journalctl -u kube-apiserver -r
+  251  exit
+  252  sudo ETCDCTL_API=3 etcdctl member list --endpoints=https://127.0.0.1:2379 --cacert=/etc/etcd/ca.pem --cert=/etc/etcd/kubernetes.pem --key=/etc/etcd/kubernetes-key.pem
+  253  sudo mkdir -p /etc/kubernetes/config
+  254  wget -q --show-progress --https-only --timestamping "https://storage.googleapis.com/kubernetes-release/release/v1.29.0/bin/linux/amd64/kube-apiserver" "https://storage.googleapis.com/kubernetes-release/release/v1.29.0/bin/linux/amd64/kube-controller-manager" "https://storage.googleapis.com/kubernetes-release/release/v1.29.0/bin/linux/amd64/kube-scheduler" "https://storage.googleapis.com/kubernetes-release/release/v1.29.0/bin/linux/amd64/kubectl"
+  255  { chmod +x kube-apiserver kube-controller-manager kube-scheduler kubectl; sudo mv kube-apiserver kube-controller-manager kube-scheduler kubectl /usr/local/bin/; }
+  256  { sudo mkdir -p /var/lib/kubernetes/ sudo mv ca.pem ca-key.pem kubernetes-key.pem kubernetes.pem service-account-key.pem service-account.pem     encryption-config.yaml /var/lib/kubernetes/; }
+  257  INTERNAL_IP=$(hostname -i | awk '{print$2}')
+  258  echo $INTERNAL_IP
+  259  echo $CONTROLLER_0 $CONTROLLER_1 $CONTROLLER_2
+  260  {     CONTROLLER_0=10.165.235.89;     CONTROLLER_1=10.165.235.123;     CONTROLLER_2=10.165.235.102; }
+  261  echo $CONTROLLER_0 $CONTROLLER_1 $CONTROLLER_2
+  262  ETCD_ENDPOINTS="controller-0=https://${CONTROLLER_0}:2380,controller-1=https://${CONTROLLER_1}:2380,controller-2=https://${CONTROLLER_2}:2380"
+  263  echo $ETCD_ENDPOINTS
+  264  cat <<EOF | sudo tee /etc/systemd/system/kube-apiserver.service
+  265  [Unit]
+  266  Description=Kubernetes API Server
+  267  Documentation=https://github.com/kubernetes/kubernetes
+  268  [Service]
+  269  ExecStart=/usr/local/bin/kube-apiserver \\
+  270  --advertise-address=${INTERNAL_IP} \\
+  271  --allow-privileged=true \\
+  272  --apiserver-count=3 \\
+  273  --audit-log-maxage=30 \\
+  274  --audit-log-maxbackup=3 \\
+  275  --audit-log-maxsize=100 \\
+  276  --audit-log-path=/var/log/audit.log \\
+  277  --authorization-mode=Node,RBAC \\
+  278  --bind-address=0.0.0.0 \\
+  279  --client-ca-file=/var/lib/kubernetes/ca.pem \\
+  280  --enable-admission-plugins=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \\
+  281  --etcd-cafile=/var/lib/kubernetes/ca.pem \\
+  282  --etcd-certfile=/var/lib/kubernetes/kubernetes.pem \\
+  283  --etcd-keyfile=/var/lib/kubernetes/kubernetes-key.pem \\
+  284  --etcd-servers="${ETCD_ENDPOINTS}"\\
+  285  --event-ttl=1h \\
+  286  --kubelet-certificate-authority=/var/lib/kubernetes/ca.pem \\
+  287  --kubelet-client-certificate=/var/lib/kubernetes/kubernetes.pem \\
+  288  --kubelet-client-key=/var/lib/kubernetes/kubernetes-key.pem \\
+  289  --runtime-config=api/all \\
+  290  --service-account-key-file=/var/lib/kubernetes/service-account.pem \\
+  291  --service-cluster-ip-range=10.32.0.0/24 \\
+  292  --service-node-port-range=30000-32767 \\
+  293  --service-account-issuer="https://kubernetes.default.svc" \\
+  294  --tls-cert-file=/var/lib/kubernetes/kubernetes.pem \\
+  295  --tls-private-key-file=/var/lib/kubernetes/kubernetes-key.pem \\
+  296  --v=2
+  297  Restart=on-failure
+  298  RestartSec=5
+  299  [Install]
+  300  WantedBy=multi-user.target
+  301  EOF
+  302  {     systemctl daemon-reload;     systemctl restart kube-apiserver; }
+  303  systemctl status kube-apiserver
+  304  journalctl -u kube-apiserver -r
+  305  journalctl -u kube-apiserver -r | head -4
+  306  ls
+  307  cd /var/lib/
+  308  ls
+  309  cd kubernetes/
+  310  ls
+  311  exit
+  312  cd /var/lib/kubernetes/
+  313  ls
+  314  cat service-account.pem 
+  315  cat service-account-key.pem 
+  316  cat <<EOF | sudo tee /etc/systemd/system/kube-apiserver.service
+  317  [Unit]
+  318  Description=Kubernetes API Server
+  319  Documentation=https://github.com/kubernetes/kubernetes
+  320  [Service]
+  321  ExecStart=/usr/local/bin/kube-apiserver \\
+  322  --advertise-address=${INTERNAL_IP} \\
+  323  --allow-privileged=true \\
+  324  --apiserver-count=3 \\
+  325  --audit-log-maxage=30 \\
+  326  --audit-log-maxbackup=3 \\
+  327  --audit-log-maxsize=100 \\
+  328  --audit-log-path=/var/log/audit.log \\
+  329  --authorization-mode=Node,RBAC \\
+  330  --bind-address=0.0.0.0 \\
+  331  --client-ca-file=/var/lib/kubernetes/ca.pem \\
+  332  --enable-admission-plugins=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \\
+  333  --etcd-cafile=/var/lib/kubernetes/ca.pem \\
+  334  --etcd-certfile=/var/lib/kubernetes/kubernetes.pem \\
+  335  --etcd-keyfile=/var/lib/kubernetes/kubernetes-key.pem \\
+  336  --etcd-servers="${ETCD_ENDPOINTS}"\\
+  337  --event-ttl=1h \\
+  338  --kubelet-certificate-authority=/var/lib/kubernetes/ca.pem \\
+  339  --kubelet-client-certificate=/var/lib/kubernetes/kubernetes.pem \\
+  340  --kubelet-client-key=/var/lib/kubernetes/kubernetes-key.pem \\
+  341  --runtime-config=api/all \\
+  342  --service-account-key-file=/var/lib/kubernetes/service-account.pem \\
+  343  --service-cluster-ip-range=10.32.0.0/24 \\
+  344  --service-node-port-range=30000-32767 \\
+  345  --service-account-signing-key-file=/var/lib/kubernetes/service-account-key.pem \\
+  346  --api-audiences="api,system:serviceaccounts" \\
+  347  --service-account-issuer="https://kubernetes.default.svc" \\
+  348  --tls-cert-file=/var/lib/kubernetes/kubernetes.pem \\
+  349  --tls-private-key-file=/var/lib/kubernetes/kubernetes-key.pem \\
+  350  --v=2
+  351  Restart=on-failure
+  352  RestartSec=5
+  353  [Install]
+  354  WantedBy=multi-user.target
+  355  EOF
+  356  {     systemctl daemon-reload;     systemctl restart kube-apiserver; }
+  357  systemctl status kube-apiservre
+  358  systemctl status kube-apiserver
+  359  journalctl -u kube-apiserver -r
+  360  cat /etc/systemd/system/kube-apiserver.service
+  361  echo $INTERNAL_IP
+  362  INTERNAL_IP=$(hostname -i | awk '{print$2}')
+  363  echo $INTERNAL_IP
+  364  echo $CONTROLLER_0 $CONTROLLER_1 $CONTROLLER_2
+  365  {     CONTROLLER_0=10.165.235.89;     CONTROLLER_1=10.165.235.123;     CONTROLLER_2=10.165.235.102; }
+  366  echo $INTERNAL_IP
+  367  echo $CONTROLLER_0 $CONTROLLER_1 $CONTROLLER_2
+  368  ETCD_ENDPOINTS="controller-0=https://${CONTROLLER_0}:2380,controller-1=https://${CONTROLLER_1}:2380,controller-2=https://${CONTROLLER_2}:2380"
+  369  echo $ETCD_ENDPOINTS
+  370  cat <<EOF | sudo tee /etc/systemd/system/kube-apiserver.service
+  371  [Unit]
+  372  Description=Kubernetes API Server
+  373  Documentation=https://github.com/kubernetes/kubernetes
+  374  [Service]
+  375  ExecStart=/usr/local/bin/kube-apiserver \\
+  376  --advertise-address=${INTERNAL_IP} \\
+  377  --allow-privileged=true \\
+  378  --apiserver-count=3 \\
+  379  --audit-log-maxage=30 \\
+  380  --audit-log-maxbackup=3 \\
+  381  --audit-log-maxsize=100 \\
+  382  --audit-log-path=/var/log/audit.log \\
+  383  --authorization-mode=Node,RBAC \\
+  384  --bind-address=0.0.0.0 \\
+  385  --client-ca-file=/var/lib/kubernetes/ca.pem \\
+  386  --enable-admission-plugins=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \\
+  387  --etcd-cafile=/var/lib/kubernetes/ca.pem \\
+  388  --etcd-certfile=/var/lib/kubernetes/kubernetes.pem \\
+  389  --etcd-keyfile=/var/lib/kubernetes/kubernetes-key.pem \\
+  390  --etcd-servers="${ETCD_ENDPOINTS}"\\
+  391  --event-ttl=1h \\
+  392  --kubelet-certificate-authority=/var/lib/kubernetes/ca.pem \\
+  393  --kubelet-client-certificate=/var/lib/kubernetes/kubernetes.pem \\
+  394  --kubelet-client-key=/var/lib/kubernetes/kubernetes-key.pem \\
+  395  --runtime-config=api/all \\
+  396  --service-account-key-file=/var/lib/kubernetes/service-account.pem \\
+  397  --service-cluster-ip-range=10.32.0.0/24 \\
+  398  --service-node-port-range=30000-32767 \\
+  399  --service-account-signing-key-file=/var/lib/kubernetes/service-account-key.pem \\
+  400  --api-audiences="api,system:serviceaccounts" \\
+  401  --service-account-issuer="https://kubernetes.default.svc" \\
+  402  --tls-cert-file=/var/lib/kubernetes/kubernetes.pem \\
+  403  --tls-private-key-file=/var/lib/kubernetes/kubernetes-key.pem \\
+  404  --v=2
+  405  Restart=on-failure
+  406  RestartSec=5
+  407  [Install]
+  408  WantedBy=multi-user.target
+  409  EOF
+  410  {     systemctl daemon-reload;     systemctl restart kube-apiserver; }
+  411  systemctl status kube-apiserver
+  412  journalctl -u kube-apiserver -r
+  413  cat <<EOF | sudo tee /etc/systemd/system/kube-apiserver.service
+  414  [Unit]
+  415  Description=Kubernetes API Server
+  416  Documentation=https://github.com/kubernetes/kubernetes
+  417  [Service]
+  418  ExecStart=/usr/local/bin/kube-apiserver \\
+  419  --advertise-address=${INTERNAL_IP} \\
+  420  --allow-privileged=true \\
+  421  --apiserver-count=3 \\
+  422  --audit-log-maxage=30 \\
+  423  --audit-log-maxbackup=3 \\
+  424  --audit-log-maxsize=100 \\
+  425  --audit-log-path=/var/log/audit.log \\
+  426  --authorization-mode=Node,RBAC \\
+  427  --bind-address=0.0.0.0 \\
+  428  --client-ca-file=/var/lib/kubernetes/ca.pem \\
+  429  --enable-admission-plugins=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \\
+  430  --etcd-cafile=/var/lib/kubernetes/ca.pem \\
+  431  --etcd-certfile=/var/lib/kubernetes/kubernetes.pem \\
+  432  --etcd-keyfile=/var/lib/kubernetes/kubernetes-key.pem \\
+  433  --etcd-servers="${ETCD_ENDPOINTS}"\\
+  434  --event-ttl=1h \\
+  435  --kubelet-certificate-authority=/var/lib/kubernetes/ca.pem \\
+  436  --kubelet-client-certificate=/var/lib/kubernetes/kubernetes.pem \\
+  437  --kubelet-client-key=/var/lib/kubernetes/kubernetes-key.pem \\
+  438  --runtime-config=api/all=true \\
+  439  --service-account-key-file=/var/lib/kubernetes/service-account.pem \\
+  440  --service-cluster-ip-range=10.32.0.0/24 \\
+  441  --service-node-port-range=30000-32767 \\
+  442  --service-account-signing-key-file=/var/lib/kubernetes/service-account-key.pem \\
+  443  --api-audiences="api,system:serviceaccounts" \\
+  444  --service-account-issuer="https://kubernetes.default.svc" \\
+  445  --tls-cert-file=/var/lib/kubernetes/kubernetes.pem \\
+  446  --tls-private-key-file=/var/lib/kubernetes/kubernetes-key.pem \\
+  447  --v=2
+  448  Restart=on-failure
+  449  RestartSec=5
+  450  [Install]
+  451  WantedBy=multi-user.target
+  452  EOF
+  453  {     systemctl daemon-reload;     systemctl restart kube-apiserver; }
+  454  systemctl status kube-apiserver
+  455  journalctl -u kube-apiserver -r
+  456  cd ~
+  457  echo $CONTROLLER_1
+  458  cat <<EOF | sudo tee /etc/systemd/system/kube-apiserver.service
+  459  [Unit]
+  460  Description=Kubernetes API Server
+  461  Documentation=https://github.com/kubernetes/kubernetes
+  462  [Service]
+  463  ExecStart=/usr/local/bin/kube-apiserver \\
+  464  --advertise-address=${INTERNAL_IP} \\
+  465  --allow-privileged=true \\
+  466  --apiserver-count=3 \\
+  467  --audit-log-maxage=30 \\
+  468  --audit-log-maxbackup=3 \\
+  469  --audit-log-maxsize=100 \\
+  470  --audit-log-path=/var/log/audit.log \\
+  471  --authorization-mode=Node,RBAC \\
+  472  --bind-address=0.0.0.0 \\
+  473  --client-ca-file=/var/lib/kubernetes/ca.pem \\
+  474  --enable-admission-plugins=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \\
+  475  --etcd-cafile=/var/lib/kubernetes/ca.pem \\
+  476  --etcd-certfile=/var/lib/kubernetes/kubernetes.pem \\
+  477  --etcd-keyfile=/var/lib/kubernetes/kubernetes-key.pem \\
+  478  --etcd-servers=controller-0=https://${CONTROLLER_0}:2380,controller-1=https://${CONTROLLER_1}:2380,controller-2=https://${CONTROLLER_2}:2380\\
+  479  --event-ttl=1h \\
+  480  --kubelet-certificate-authority=/var/lib/kubernetes/ca.pem \\
+  481  --kubelet-client-certificate=/var/lib/kubernetes/kubernetes.pem \\
+  482  --kubelet-client-key=/var/lib/kubernetes/kubernetes-key.pem \\
+  483  --runtime-config=api/all=true \\
+  484  --service-account-key-file=/var/lib/kubernetes/service-account.pem \\
+  485  --service-cluster-ip-range=10.32.0.0/24 \\
+  486  --service-node-port-range=30000-32767 \\
+  487  --service-account-signing-key-file=/var/lib/kubernetes/service-account-key.pem \\
+  488  --api-audiences="api,system:serviceaccounts" \\
+  489  --service-account-issuer="https://kubernetes.default.svc" \\
+  490  --tls-cert-file=/var/lib/kubernetes/kubernetes.pem \\
+  491  --tls-private-key-file=/var/lib/kubernetes/kubernetes-key.pem \\
+  492  --v=2
+  493  Restart=on-failure
+  494  RestartSec=5
+  495  [Install]
+  496  WantedBy=multi-user.target
+  497  EOF
+  498  {     systemctl daemon-reload;     systemctl restart kube-apiserver; }
+  499  systemctl status kube-apiserver
+  500  journalctl -u kube-apiserver -r
+  501  cat <<EOF | sudo tee /etc/systemd/system/kube-apiserver.service
+  502  [Unit]
+  503  Description=Kubernetes API Server
+  504  Documentation=https://github.com/kubernetes/kubernetes
+  505  [Service]
+  506  ExecStart=/usr/local/bin/kube-apiserver \\
+  507  --advertise-address=${INTERNAL_IP} \\
+  508  --allow-privileged=true \\
+  509  --apiserver-count=3 \\
+  510  --audit-log-maxage=30 \\
+  511  --audit-log-maxbackup=3 \\
+  512  --audit-log-maxsize=100 \\
+  513  --audit-log-path=/var/log/audit.log \\
+  514  --authorization-mode=Node,RBAC \\
+  515  --bind-address=0.0.0.0 \\
+  516  --client-ca-file=/var/lib/kubernetes/ca.pem \\
+  517  --enable-admission-plugins=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \\
+  518  --etcd-cafile=/var/lib/kubernetes/ca.pem \\
+  519  --etcd-certfile=/var/lib/kubernetes/kubernetes.pem \\
+  520  --etcd-keyfile=/var/lib/kubernetes/kubernetes-key.pem \\
+  521  --etcd-servers=controller-0=https://10.165.235.89:2380,controller-1=https://10.165.235.123:2380,controller-2=https://102:2380\\
+  522  --event-ttl=1h \\
+  523  --kubelet-certificate-authority=/var/lib/kubernetes/ca.pem \\
+  524  --kubelet-client-certificate=/var/lib/kubernetes/kubernetes.pem \\
+  525  --kubelet-client-key=/var/lib/kubernetes/kubernetes-key.pem \\
+  526  --runtime-config=api/all=true \\
+  527  --service-account-key-file=/var/lib/kubernetes/service-account.pem \\
+  528  --service-cluster-ip-range=10.32.0.0/24 \\
+  529  --service-node-port-range=30000-32767 \\
+  530  --service-account-signing-key-file=/var/lib/kubernetes/service-account-key.pem \\
+  531  --api-audiences="api,system:serviceaccounts" \\
+  532  --service-account-issuer="https://kubernetes.default.svc" \\
+  533  --tls-cert-file=/var/lib/kubernetes/kubernetes.pem \\
+  534  --tls-private-key-file=/var/lib/kubernetes/kubernetes-key.pem \\
+  535  --v=2
+  536  Restart=on-failure
+  537  RestartSec=5
+  538  [Install]
+  539  WantedBy=multi-user.target
+  540  EOF
+  541  {     systemctl daemon-reload;     systemctl restart kube-apiserver; }
+  542  systemctl status kube-apiserver
+  543  journalctl -u kube-apiserver -r
+  544  cat <<EOF | sudo tee /etc/systemd/system/kube-apiserver.service
+  545  [Unit]
+  546  Description=Kubernetes API Server
+  547  Documentation=https://github.com/kubernetes/kubernetes
+  548  [Service]
+  549  ExecStart=/usr/local/bin/kube-apiserver \\
+  550  --advertise-address=${INTERNAL_IP} \\
+  551  --allow-privileged=true \\
+  552  --apiserver-count=3 \\
+  553  --audit-log-maxage=30 \\
+  554  --audit-log-maxbackup=3 \\
+  555  --audit-log-maxsize=100 \\
+  556  --audit-log-path=/var/log/audit.log \\
+  557  --authorization-mode=Node,RBAC \\
+  558  --bind-address=0.0.0.0 \\
+  559  --client-ca-file=/var/lib/kubernetes/ca.pem \\
+  560  --enable-admission-plugins=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \\
+  561  --etcd-cafile=/var/lib/kubernetes/ca.pem \\
+  562  --etcd-certfile=/var/lib/kubernetes/kubernetes.pem \\
+  563  --etcd-keyfile=/var/lib/kubernetes/kubernetes-key.pem \\
+  564  --etcd-servers=controller-0=https://10.165.235.89:2380,controller-1=https://10.165.235.123:2380,controller-2=https://10.165.235.102:2380\\
+  565  --event-ttl=1h \\
+  566  --kubelet-certificate-authority=/var/lib/kubernetes/ca.pem \\
+  567  --kubelet-client-certificate=/var/lib/kubernetes/kubernetes.pem \\
+  568  --kubelet-client-key=/var/lib/kubernetes/kubernetes-key.pem \\
+  569  --runtime-config=api/all=true \\
+  570  --service-account-key-file=/var/lib/kubernetes/service-account.pem \\
+  571  --service-cluster-ip-range=10.32.0.0/24 \\
+  572  --service-node-port-range=30000-32767 \\
+  573  --service-account-signing-key-file=/var/lib/kubernetes/service-account-key.pem \\
+  574  --api-audiences="api,system:serviceaccounts" \\
+  575  --service-account-issuer="https://kubernetes.default.svc" \\
+  576  --tls-cert-file=/var/lib/kubernetes/kubernetes.pem \\
+  577  --tls-private-key-file=/var/lib/kubernetes/kubernetes-key.pem \\
+  578  --v=2
+  579  Restart=on-failure
+  580  RestartSec=5
+  581  [Install]
+  582  WantedBy=multi-user.target
+  583  EOF
+  584  {     systemctl daemon-reload;     systemctl restart kube-apiserver; }
+  585  systemctl status kube-apiserver
+  586  journalctl -u kube-apiserver -r
+  587  cat <<EOF | sudo tee /etc/systemd/system/kube-apiserver.service
+  588  [Unit]
+  589  Description=Kubernetes API Server
+  590  Documentation=https://github.com/kubernetes/kubernetes
+  591  [Service]
+  592  ExecStart=/usr/local/bin/kube-apiserver \\
+  593  --advertise-address=${INTERNAL_IP} \\
+  594  --allow-privileged=true \\
+  595  --apiserver-count=3 \\
+  596  --audit-log-maxage=30 \\
+  597  --audit-log-maxbackup=3 \\
+  598  --audit-log-maxsize=100 \\
+  599  --audit-log-path=/var/log/audit.log \\
+  600  --authorization-mode=Node,RBAC \\
+  601  --bind-address=0.0.0.0 \\
+  602  --client-ca-file=/var/lib/kubernetes/ca.pem \\
+  603  --enable-admission-plugins=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \\
+  604  --etcd-cafile=/var/lib/kubernetes/ca.pem \\
+  605  --etcd-certfile=/var/lib/kubernetes/kubernetes.pem \\
+  606  --etcd-keyfile=/var/lib/kubernetes/kubernetes-key.pem \\
+  607  --etcd-servers="controller-0=https://10.165.235.89:2380,controller-1=https://10.165.235.123:2380,controller-2=https://10.165.235.102:2380" \\
+  608  --event-ttl=1h \\
+  609  --kubelet-certificate-authority=/var/lib/kubernetes/ca.pem \\
+  610  --kubelet-client-certificate=/var/lib/kubernetes/kubernetes.pem \\
+  611  --kubelet-client-key=/var/lib/kubernetes/kubernetes-key.pem \\
+  612  --runtime-config=api/all=true \\
+  613  --service-account-key-file=/var/lib/kubernetes/service-account.pem \\
+  614  --service-cluster-ip-range=10.32.0.0/24 \\
+  615  --service-node-port-range=30000-32767 \\
+  616  --service-account-signing-key-file=/var/lib/kubernetes/service-account-key.pem \\
+  617  --api-audiences="api,system:serviceaccounts" \\
+  618  --service-account-issuer="https://kubernetes.default.svc" \\
+  619  --tls-cert-file=/var/lib/kubernetes/kubernetes.pem \\
+  620  --tls-private-key-file=/var/lib/kubernetes/kubernetes-key.pem \\
+  621  --v=2
+  622  Restart=on-failure
+  623  RestartSec=5
+  624  [Install]
+  625  WantedBy=multi-user.target
+  626  EOF
+  627  {     systemctl daemon-reload;     systemctl restart kube-apiserver; }
+  628  systemctl status kube-apiserver
+  629  journalctl -u kube-apiserver -r
+  630  cat <<EOF | sudo tee /etc/systemd/system/kube-apiserver.service
+  631  [Unit]
+  632  Description=Kubernetes API Server
+  633  Documentation=https://github.com/kubernetes/kubernetes
+  634  [Service]
+  635  ExecStart=/usr/local/bin/kube-apiserver \\
+  636  --advertise-address=${INTERNAL_IP} \\
+  637  --allow-privileged=true \\
+  638  --apiserver-count=3 \\
+  639  --audit-log-maxage=30 \\
+  640  --audit-log-maxbackup=3 \\
+  641  --audit-log-maxsize=100 \\
+  642  --audit-log-path=/var/log/audit.log \\
+  643  --authorization-mode=Node,RBAC \\
+  644  --bind-address=0.0.0.0 \\
+  645  --client-ca-file=/var/lib/kubernetes/ca.pem \\
+  646  --enable-admission-plugins=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \\
+  647  --etcd-cafile=/var/lib/kubernetes/ca.pem \\
+  648  --etcd-certfile=/var/lib/kubernetes/kubernetes.pem \\
+  649  --etcd-keyfile=/var/lib/kubernetes/kubernetes-key.pem \\
+  650  --etcd-servers=10.165.235.89:2380,10.165.235.123:2380,10.165.235.102:2380 \\
+  651  --event-ttl=1h \\
+  652  --kubelet-certificate-authority=/var/lib/kubernetes/ca.pem \\
+  653  --kubelet-client-certificate=/var/lib/kubernetes/kubernetes.pem \\
+  654  --kubelet-client-key=/var/lib/kubernetes/kubernetes-key.pem \\
+  655  --runtime-config=api/all=true \\
+  656  --service-account-key-file=/var/lib/kubernetes/service-account.pem \\
+  657  --service-cluster-ip-range=10.32.0.0/24 \\
+  658  --service-node-port-range=30000-32767 \\
+  659  --service-account-signing-key-file=/var/lib/kubernetes/service-account-key.pem \\
+  660  --api-audiences="api,system:serviceaccounts" \\
+  661  --service-account-issuer="https://kubernetes.default.svc" \\
+  662  --tls-cert-file=/var/lib/kubernetes/kubernetes.pem \\
+  663  --tls-private-key-file=/var/lib/kubernetes/kubernetes-key.pem \\
+  664  --v=2
+  665  Restart=on-failure
+  666  RestartSec=5
+  667  [Install]
+  668  WantedBy=multi-user.target
+  669  EOF
+  670  {     systemctl daemon-reload;     systemctl restart kube-apiserver; }
+  671  systemctl status kube-apiserver
+  672  journalctl -u kube-apiserver -r
+  673  cat <<EOF | sudo tee /etc/systemd/system/kube-apiserver.service
+  674  [Unit]
+  675  Description=Kubernetes API Server
+  676  Documentation=https://github.com/kubernetes/kubernetes
+  677  [Service]
+  678  ExecStart=/usr/local/bin/kube-apiserver \\
+  679  --advertise-address=${INTERNAL_IP} \\
+  680  --allow-privileged=true \\
+  681  --apiserver-count=3 \\
+  682  --audit-log-maxage=30 \\
+  683  --audit-log-maxbackup=3 \\
+  684  --audit-log-maxsize=100 \\
+  685  --audit-log-path=/var/log/audit.log \\
+  686  --authorization-mode=Node,RBAC \\
+  687  --bind-address=0.0.0.0 \\
+  688  --client-ca-file=/var/lib/kubernetes/ca.pem \\
+  689  --enable-admission-plugins=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \\
+  690  --etcd-cafile=/var/lib/kubernetes/ca.pem \\
+  691  --etcd-certfile=/var/lib/kubernetes/kubernetes.pem \\
+  692  --etcd-keyfile=/var/lib/kubernetes/kubernetes-key.pem \\
+  693  --etcd-servers=https://10.165.235.89:2380,https://10.165.235.123:2380,https://10.165.235.102:2380 \\
+  694  --event-ttl=1h \\
+  695  --kubelet-certificate-authority=/var/lib/kubernetes/ca.pem \\
+  696  --kubelet-client-certificate=/var/lib/kubernetes/kubernetes.pem \\
+  697  --kubelet-client-key=/var/lib/kubernetes/kubernetes-key.pem \\
+  698  --runtime-config=api/all=true \\
+  699  --service-account-key-file=/var/lib/kubernetes/service-account.pem \\
+  700  --service-cluster-ip-range=10.32.0.0/24 \\
+  701  --service-node-port-range=30000-32767 \\
+  702  --service-account-signing-key-file=/var/lib/kubernetes/service-account-key.pem \\
+  703  --api-audiences="api,system:serviceaccounts" \\
+  704  --service-account-issuer="https://kubernetes.default.svc" \\
+  705  --tls-cert-file=/var/lib/kubernetes/kubernetes.pem \\
+  706  --tls-private-key-file=/var/lib/kubernetes/kubernetes-key.pem \\
+  707  --v=2
+  708  Restart=on-failure
+  709  RestartSec=5
+  710  [Install]
+  711  WantedBy=multi-user.target
+  712  EOF
+  713  {     systemctl daemon-reload;     systemctl restart kube-apiserver; }
+  714  systemctl status kube-apiserver
+  715  journalctl -u kube-apiserver -r
+  716  cat <<EOF | sudo tee /etc/systemd/system/kube-apiserver.service
+  717  [Unit]
+  718  Description=Kubernetes API Server
+  719  Documentation=https://github.com/kubernetes/kubernetes
+  720  [Service]
+  721  ExecStart=/usr/local/bin/kube-apiserver \\
+  722  --advertise-address=${INTERNAL_IP} \\
+  723  --allow-privileged=true \\
+  724  --apiserver-count=3 \\
+  725  --audit-log-maxage=30 \\
+  726  --audit-log-maxbackup=3 \\
+  727  --audit-log-maxsize=100 \\
+  728  --audit-log-path=/var/log/audit.log \\
+  729  --authorization-mode=Node,RBAC \\
+  730  --bind-address=0.0.0.0 \\
+  731  --client-ca-file=/var/lib/kubernetes/ca.pem \\
+  732  --enable-admission-plugins=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \\
+  733  --etcd-cafile=/var/lib/kubernetes/ca.pem \\
+  734  --etcd-certfile=/var/lib/kubernetes/kubernetes.pem \\
+  735  --etcd-keyfile=/var/lib/kubernetes/kubernetes-key.pem \\
+  736  --etcd-servers=[https://10.165.235.89:2380,https://10.165.235.123:2380,https://10.165.235.102:2380]\\
+  737  --event-ttl=1h \\
+  738  --kubelet-certificate-authority=/var/lib/kubernetes/ca.pem \\
+  739  --kubelet-client-certificate=/var/lib/kubernetes/kubernetes.pem \\
+  740  --kubelet-client-key=/var/lib/kubernetes/kubernetes-key.pem \\
+  741  --runtime-config=api/all=true \\
+  742  --service-account-key-file=/var/lib/kubernetes/service-account.pem \\
+  743  --service-cluster-ip-range=10.32.0.0/24 \\
+  744  --service-node-port-range=30000-32767 \\
+  745  --service-account-signing-key-file=/var/lib/kubernetes/service-account-key.pem \\
+  746  --api-audiences="api,system:serviceaccounts" \\
+  747  --service-account-issuer="https://kubernetes.default.svc" \\
+  748  --tls-cert-file=/var/lib/kubernetes/kubernetes.pem \\
+  749  --tls-private-key-file=/var/lib/kubernetes/kubernetes-key.pem \\
+  750  --v=2
+  751  Restart=on-failure
+  752  RestartSec=5
+  753  [Install]
+  754  WantedBy=multi-user.target
+  755  EOF
+  756  {     systemctl daemon-reload;     systemctl restart kube-apiserver; }
+  757  systemctl status kube-apiserver
+  758  journalctl -u kube-apiserver -r
+  759  cat <<EOF | sudo tee /etc/systemd/system/kube-apiserver.service
+  760  [Unit]
+  761  Description=Kubernetes API Server
+  762  Documentation=https://github.com/kubernetes/kubernetes
+  763  [Service]
+  764  ExecStart=/usr/local/bin/kube-apiserver \\
+  765  --advertise-address=${INTERNAL_IP} \\
+  766  --allow-privileged=true \\
+  767  --apiserver-count=3 \\
+  768  --audit-log-maxage=30 \\
+  769  --audit-log-maxbackup=3 \\
+  770  --audit-log-maxsize=100 \\
+  771  --audit-log-path=/var/log/audit.log \\
+  772  --authorization-mode=Node,RBAC \\
+  773  --bind-address=0.0.0.0 \\
+  774  --client-ca-file=/var/lib/kubernetes/ca.pem \\
+  775  --enable-admission-plugins=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \\
+  776  --etcd-cafile=/var/lib/kubernetes/ca.pem \\
+  777  --etcd-certfile=/var/lib/kubernetes/kubernetes.pem \\
+  778  --etcd-keyfile=/var/lib/kubernetes/kubernetes-key.pem \\
+  779  --etcd-servers=[https://10.165.235.89:2380],[https://10.165.235.123:2380],[https://10.165.235.102:2380]\\
+  780  --event-ttl=1h \\
+  781  --kubelet-certificate-authority=/var/lib/kubernetes/ca.pem \\
+  782  --kubelet-client-certificate=/var/lib/kubernetes/kubernetes.pem \\
+  783  --kubelet-client-key=/var/lib/kubernetes/kubernetes-key.pem \\
+  784  --runtime-config=api/all=true \\
+  785  --service-account-key-file=/var/lib/kubernetes/service-account.pem \\
+  786  --service-cluster-ip-range=10.32.0.0/24 \\
+  787  --service-node-port-range=30000-32767 \\
+  788  --service-account-signing-key-file=/var/lib/kubernetes/service-account-key.pem \\
+  789  --api-audiences="api,system:serviceaccounts" \\
+  790  --service-account-issuer="https://kubernetes.default.svc" \\
+  791  --tls-cert-file=/var/lib/kubernetes/kubernetes.pem \\
+  792  --tls-private-key-file=/var/lib/kubernetes/kubernetes-key.pem \\
+  793  --v=2
+  794  Restart=on-failure
+  795  RestartSec=5
+  796  [Install]
+  797  WantedBy=multi-user.target
+  798  EOF
+  799  {     systemctl daemon-reload;     systemctl restart kube-apiserver; }
+  800  systemctl status kube-apiserver
+  801  journalctl -u kube-apiserver -r
+  802  cat <<EOF | sudo tee /etc/systemd/system/kube-apiserver.service
+  803  [Unit]
+  804  Description=Kubernetes API Server
+  805  Documentation=https://github.com/kubernetes/kubernetes
+  806  [Service]
+  807  ExecStart=/usr/local/bin/kube-apiserver \\
+  808  --advertise-address=${INTERNAL_IP} \\
+  809  --allow-privileged=true \\
+  810  --apiserver-count=3 \\
+  811  --audit-log-maxage=30 \\
+  812  --audit-log-maxbackup=3 \\
+  813  --audit-log-maxsize=100 \\
+  814  --audit-log-path=/var/log/audit.log \\
+  815  --authorization-mode=Node,RBAC \\
+  816  --bind-address=0.0.0.0 \\
+  817  --client-ca-file=/var/lib/kubernetes/ca.pem \\
+  818  --enable-admission-plugins=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \\
+  819  --etcd-cafile=/var/lib/kubernetes/ca.pem \\
+  820  --etcd-certfile=/var/lib/kubernetes/kubernetes.pem \\
+  821  --etcd-keyfile=/var/lib/kubernetes/kubernetes-key.pem \\
+  822  --etcd-servers=https://10.165.235.89:2380,https://10.165.235.123:2380,https://10.165.235.102:2380 \\
+  823  --event-ttl=1h \\
+  824  --kubelet-certificate-authority=/var/lib/kubernetes/ca.pem \\
+  825  --kubelet-client-certificate=/var/lib/kubernetes/kubernetes.pem \\
+  826  --kubelet-client-key=/var/lib/kubernetes/kubernetes-key.pem \\
+  827  --runtime-config=api/all=true \\
+  828  --service-account-key-file=/var/lib/kubernetes/service-account.pem \\
+  829  --service-cluster-ip-range=10.32.0.0/24 \\
+  830  --service-node-port-range=30000-32767 \\
+  831  --service-account-signing-key-file=/var/lib/kubernetes/service-account-key.pem \\
+  832  --api-audiences="api,system:serviceaccounts" \\
+  833  --service-account-issuer="https://kubernetes.default.svc" \\
+  834  --tls-cert-file=/var/lib/kubernetes/kubernetes.pem \\
+  835  --tls-private-key-file=/var/lib/kubernetes/kubernetes-key.pem \\
+  836  --v=2
+  837  Restart=on-failure
+  838  RestartSec=5
+  839  [Install]
+  840  WantedBy=multi-user.target
+  841  EOF
+  842  {     systemctl daemon-reload;     systemctl restart kube-apiserver; }
+  843  systemctl status kube-apiserver
+  844  journalctl -u kube-apiserver -r
+  845  cat <<EOF | sudo tee /etc/systemd/system/kube-apiserver.service
+  846  [Unit]
+  847  Description=Kubernetes API Server
+  848  Documentation=https://github.com/kubernetes/kubernetes
+  849  [Service]
+  850  ExecStart=/usr/local/bin/kube-apiserver \\
+  851  --advertise-address=${INTERNAL_IP} \\
+  852  --allow-privileged=true \\
+  853  --apiserver-count=3 \\
+  854  --audit-log-maxage=30 \\
+  855  --audit-log-maxbackup=3 \\
+  856  --audit-log-maxsize=100 \\
+  857  --audit-log-path=/var/log/audit.log \\
+  858  --authorization-mode=Node,RBAC \\
+  859  --bind-address=0.0.0.0 \\
+  860  --client-ca-file=/var/lib/kubernetes/ca.pem \\
+  861  --enable-admission-plugins=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \\
+  862  --etcd-cafile=/var/lib/kubernetes/ca.pem \\
+  863  --etcd-certfile=/var/lib/kubernetes/kubernetes.pem \\
+  864  --etcd-keyfile=/var/lib/kubernetes/kubernetes-key.pem \\
+  865  --etcd-servers=https://10.165.235.89:2380 \\
+  866  --event-ttl=1h \\
+  867  --kubelet-certificate-authority=/var/lib/kubernetes/ca.pem \\
+  868  --kubelet-client-certificate=/var/lib/kubernetes/kubernetes.pem \\
+  869  --kubelet-client-key=/var/lib/kubernetes/kubernetes-key.pem \\
+  870  --runtime-config=api/all=true \\
+  871  --service-account-key-file=/var/lib/kubernetes/service-account.pem \\
+  872  --service-cluster-ip-range=10.32.0.0/24 \\
+  873  --service-node-port-range=30000-32767 \\
+  874  --service-account-signing-key-file=/var/lib/kubernetes/service-account-key.pem \\
+  875  --api-audiences="api,system:serviceaccounts" \\
+  876  --service-account-issuer="https://kubernetes.default.svc" \\
+  877  --tls-cert-file=/var/lib/kubernetes/kubernetes.pem \\
+  878  --tls-private-key-file=/var/lib/kubernetes/kubernetes-key.pem \\
+  879  --v=2
+  880  Restart=on-failure
+  881  RestartSec=5
+  882  [Install]
+  883  WantedBy=multi-user.target
+  884  EOF
+  885  {     systemctl daemon-reload;     systemctl restart kube-apiserver; }
+  886  systemctl status kube-apiserver
+  887  journalctl -u kube-apiserver -r
+  888  cat <<EOF | sudo tee /etc/systemd/system/kube-apiserver.service
+  889  [Unit]
+  890  Description=Kubernetes API Server
+  891  Documentation=https://github.com/kubernetes/kubernetes
+  892  [Service]
+  893  ExecStart=/usr/local/bin/kube-apiserver \\
+  894  --advertise-address=${INTERNAL_IP} \\
+  895  --allow-privileged=true \\
+  896  --apiserver-count=3 \\
+  897  --audit-log-maxage=30 \\
+  898  --audit-log-maxbackup=3 \\
+  899  --audit-log-maxsize=100 \\
+  900  --audit-log-path=/var/log/audit.log \\
+  901  --authorization-mode=Node,RBAC \\
+  902  --bind-address=0.0.0.0 \\
+  903  --client-ca-file=/var/lib/kubernetes/ca.pem \\
+  904  --enable-admission-plugins=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \\
+  905  --etcd-cafile=/var/lib/kubernetes/ca.pem \\
+  906  --etcd-certfile=/var/lib/kubernetes/kubernetes.pem \\
+  907  --etcd-keyfile=/var/lib/kubernetes/kubernetes-key.pem \\
+  908  --etcd-servers=controller-0=https://10.165.235.89:2380 \\
+  909  --event-ttl=1h \\
+  910  --kubelet-certificate-authority=/var/lib/kubernetes/ca.pem \\
+  911  --kubelet-client-certificate=/var/lib/kubernetes/kubernetes.pem \\
+  912  --kubelet-client-key=/var/lib/kubernetes/kubernetes-key.pem \\
+  913  --runtime-config=api/all=true \\
+  914  --service-account-key-file=/var/lib/kubernetes/service-account.pem \\
+  915  --service-cluster-ip-range=10.32.0.0/24 \\
+  916  --service-node-port-range=30000-32767 \\
+  917  --service-account-signing-key-file=/var/lib/kubernetes/service-account-key.pem \\
+  918  --api-audiences="api,system:serviceaccounts" \\
+  919  --service-account-issuer="https://kubernetes.default.svc" \\
+  920  --tls-cert-file=/var/lib/kubernetes/kubernetes.pem \\
+  921  --tls-private-key-file=/var/lib/kubernetes/kubernetes-key.pem \\
+  922  --v=2
+  923  Restart=on-failure
+  924  RestartSec=5
+  925  [Install]
+  926  WantedBy=multi-user.target
+  927  EOF
+  928  {     systemctl daemon-reload;     systemctl restart kube-apiserver; }
+  929  systemctl status kube-apiserver
+  930  journalctl -u kube-apiserver -r
+  931  sudo ETCDCTL_API=3 etcdctl member list --endpoints=https://127.0.0.1:2379 --cacert=/etc/etcd/ca.pem --cert=/etc/etcd/kubernetes.pem --key=/etc/etcd/kubernetes-key.pem
+  932  journalctl -u kube-apiserver -r
+  933  journalctl -u kube-apiserver -r | head -3
+  934  cat <<EOF | sudo tee /etc/systemd/system/kube-apiserver.service
+  935  [Unit]
+  936  Description=Kubernetes API Server
+  937  Documentation=https://github.com/kubernetes/kubernetes
+  938  [Service]
+  939  ExecStart=/usr/local/bin/kube-apiserver \\
+  940  --advertise-address=${INTERNAL_IP} \\
+  941  --allow-privileged=true \\
+  942  --apiserver-count=3 \\
+  943  --audit-log-maxage=30 \\
+  944  --audit-log-maxbackup=3 \\
+  945  --audit-log-maxsize=100 \\
+  946  --audit-log-path=/var/log/audit.log \\
+  947  --authorization-mode=Node,RBAC \\
+  948  --bind-address=0.0.0.0 \\
+  949  --client-ca-file=/var/lib/kubernetes/ca.pem \\
+  950  --enable-admission-plugins=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \\
+  951  --etcd-cafile=/var/lib/kubernetes/ca.pem \\
+  952  --etcd-certfile=/var/lib/kubernetes/kubernetes.pem \\
+  953  --etcd-keyfile=/var/lib/kubernetes/kubernetes-key.pem \\
+  954  --etcd-servers=https://10.165.235.89:2379,https://10.165.235.123:2379,https://10.165.235.102:2379 \\
+  955  --event-ttl=1h \\
+  956  --kubelet-certificate-authority=/var/lib/kubernetes/ca.pem \\
+  957  --kubelet-client-certificate=/var/lib/kubernetes/kubernetes.pem \\
+  958  --kubelet-client-key=/var/lib/kubernetes/kubernetes-key.pem \\
+  959  --runtime-config=api/all=true \\
+  960  --service-account-key-file=/var/lib/kubernetes/service-account.pem \\
+  961  --service-cluster-ip-range=10.32.0.0/24 \\
+  962  --service-node-port-range=30000-32767 \\
+  963  --service-account-signing-key-file=/var/lib/kubernetes/service-account-key.pem \\
+  964  --api-audiences="api,system:serviceaccounts" \\
+  965  --service-account-issuer="https://kubernetes.default.svc" \\
+  966  --tls-cert-file=/var/lib/kubernetes/kubernetes.pem \\
+  967  --tls-private-key-file=/var/lib/kubernetes/kubernetes-key.pem \\
+  968  --v=2
+  969  Restart=on-failure
+  970  RestartSec=5
+  971  [Install]
+  972  WantedBy=multi-user.target
+  973  EOF
+  974  {     systemctl daemon-reload;     systemctl restart kube-apiserver; }
+  975  systemctl status kube-apiserver
+  976  journalctl -u kube-apiserver -r
+  977  exit
+  978  sudo mv kube-controller-manager.kubeconfig /var/lib/kubernetes/
+  979  cat <<EOF | sudo tee /etc/systemd/system/kube-controller-manager.service
+  980  [Unit]
+  981  Description=Kubernetes Controller Manager
+  982  Documentation=https://github.com/kubernetes/kubernetes
+  983  [Service]
+  984  ExecStart=/usr/local/bin/kube-controller-manager \\
+  985  --address=0.0.0.0 \\
+  986  --cluster-cidr=10.200.0.0/16 \\
+  987  --cluster-name=kubernetes \\
+  988  --cluster-signing-cert-file=/var/lib/kubernetes/ca.pem \\
+  989  --cluster-signing-key-file=/var/lib/kubernetes/ca-key.pem \\
+  990  --kubeconfig=/var/lib/kubernetes/kube-controller-manager.kubeconfig \\
+  991  --leader-elect=true \\
+  992  --root-ca-file=/var/lib/kubernetes/ca.pem \\
+  993  --service-account-private-key-file=/var/lib/kubernetes/service-account-key.pem \\
+  994  --service-cluster-ip-range=10.32.0.0/24 \\
+  995  --use-service-account-credentials=true \\
+  996  --v=2
+  997  Restart=on-failure
+  998  RestartSec=5
+  999  [Install]
+ 1000  WantedBy=multi-user.target
+ 1001  EOF
+ 1002  sudo mv kube-scheduler.kubeconfig /var/lib/kubernetes/
+ 1003  cat <<EOF | sudo tee /etc/kubernetes/config/kube-scheduler.yaml
+ 1004  apiVersion: componentconfig/v1alpha1
+ 1005  kind: KubeSchedulerConfiguration
+ 1006  clientConnection:
+ 1007    kubeconfig: "/var/lib/kubernetes/kube-scheduler.kubeconfig"
+ 1008  leaderElection:
+ 1009    leaderElect: true
+ 1010  EOF
+ 1011  cat <<EOF | sudo tee /etc/systemd/system/kube-scheduler.service
+ 1012  [Unit]
+ 1013  Description=Kubernetes Scheduler
+ 1014  Documentation=https://github.com/kubernetes/kubernetes
+ 1015  [Service]
+ 1016  ExecStart=/usr/local/bin/kube-scheduler \\
+ 1017  --config=/etc/kubernetes/config/kube-scheduler.yaml \\
+ 1018  --v=2
+ 1019  Restart=on-failure
+ 1020  RestartSec=5
+ 1021  [Install]
+ 1022  WantedBy=multi-user.target
+ 1023  EOF
+ 1024  { sudo systemctl daemon-reload; sudo systemctl enable kube-apiserver kube-controller-manager kube-scheduler; sudo systemctl start kube-apiserver kube-controller-manager kube-scheduler; }
+ 1025  kubectl get componentstatuses --kubeconfig admin.kubeconfig
+ 1026  kubectl get cs --kubeconfig admin.kubeconfig
+ 1027  systemctl status kube-controller-manager
+ 1028  journalctl -u kube-controller-manager
+ 1029  journalctl -u kube-controller-manager -r
+ 1030  cat <<EOF | sudo tee /etc/systemd/system/kube-controller-manager.service
+ 1031  [Unit]
+ 1032  Description=Kubernetes Controller Manager
+ 1033  Documentation=https://github.com/kubernetes/kubernetes
+ 1034  [Service]
+ 1035  ExecStart=/usr/local/bin/kube-controller-manager \\
+ 1036  --cluster-cidr=10.200.0.0/16 \\
+ 1037  --cluster-name=kubernetes \\
+ 1038  --cluster-signing-cert-file=/var/lib/kubernetes/ca.pem \\
+ 1039  --cluster-signing-key-file=/var/lib/kubernetes/ca-key.pem \\
+ 1040  --kubeconfig=/var/lib/kubernetes/kube-controller-manager.kubeconfig \\
+ 1041  --leader-elect=true \\
+ 1042  --root-ca-file=/var/lib/kubernetes/ca.pem \\
+ 1043  --service-account-private-key-file=/var/lib/kubernetes/service-account-key.pem \\
+ 1044  --service-cluster-ip-range=10.32.0.0/24 \\
+ 1045  --use-service-account-credentials=true \\
+ 1046  --v=2
+ 1047  Restart=on-failure
+ 1048  RestartSec=5
+ 1049  [Install]
+ 1050  WantedBy=multi-user.target
+ 1051  EOF
+ 1052  systemctl daemon-reload
+ 1053  systemctl status kube-controller-manager
+ 1054  kubectl get componentstatuses --kubeconfig admin.kubeconfig
+ 1055  systemctl status kube-scheduler
+ 1056  systemctl status kube-scheduler -r
+ 1057  journalctl -u kube-scheduler -r
+ 1058  cat <<EOF | sudo tee /etc/kubernetes/config/kube-scheduler.yaml
+ 1059  apiVersion: scheduling.k8s.io/v1
+ 1060  kind: KubeSchedulerConfiguration
+ 1061  clientConnection:
+ 1062    kubeconfig: "/var/lib/kubernetes/kube-scheduler.kubeconfig"
+ 1063  leaderElection:
+ 1064    leaderElect: true
+ 1065  EOF
+ 1066  cat <<EOF | sudo tee /etc/systemd/system/kube-scheduler.service
+ 1067  [Unit]
+ 1068  Description=Kubernetes Scheduler
+ 1069  Documentation=https://github.com/kubernetes/kubernetes
+ 1070  [Service]
+ 1071  ExecStart=/usr/local/bin/kube-scheduler \\
+ 1072  --config=/etc/kubernetes/config/kube-scheduler.yaml \\
+ 1073  --v=2
+ 1074  Restart=on-failure
+ 1075  RestartSec=5
+ 1076  [Install]
+ 1077  WantedBy=multi-user.target
+ 1078  EOF
+ 1079  sudo systemctl daemon-reload
+ 1080  systemctl restart kube-scheduler
+ 1081  systemctl status kube-scheduler
+ 1082  journalctl -u kube-scheduler -r
+ 1083  cat <<EOF | sudo tee /etc/kubernetes/config/kube-scheduler.yaml
+ 1084  apiVersion: kubescheduler.config.k8s.io/v1beta3
+ 1085  kind: KubeSchedulerConfiguration
+ 1086  clientConnection:
+ 1087    kubeconfig: "/var/lib/kubernetes/kube-scheduler.kubeconfig"
+ 1088  leaderElection:
+ 1089    leaderElect: true
+ 1090  EOF
+ 1091  sudo systemctl daemon-reload
+ 1092  systemctl restart kube-scheduler
+ 1093  systemctl status kube-scheduler
+ 1094  journalctl -u kube-scheduler -r
+ 1095  cat <<EOF | sudo tee /etc/kubernetes/config/kube-scheduler.yaml
+ 1096  apiVersion: kubescheduler.config.k8s.io/v1
+ 1097  kind: KubeSchedulerConfiguration
+ 1098  clientConnection:
+ 1099    kubeconfig: "/var/lib/kubernetes/kube-scheduler.kubeconfig"
+ 1100  leaderElection:
+ 1101    leaderElect: true
+ 1102  EOF
+ 1103  cat <<EOF | sudo tee /etc/systemd/system/kube-scheduler.service
+ 1104  [Unit]
+ 1105  Description=Kubernetes Scheduler
+ 1106  Documentation=https://github.com/kubernetes/kubernetes
+ 1107  [Service]
+ 1108  ExecStart=/usr/local/bin/kube-scheduler \\
+ 1109  --config=/etc/kubernetes/config/kube-scheduler.yaml \\
+ 1110  --v=2
+ 1111  Restart=on-failure
+ 1112  RestartSec=5
+ 1113  [Install]
+ 1114  WantedBy=multi-user.target
+ 1115  EOF
+ 1116  systemctl daemon-reload
+ 1117  systemctl restart kube-scheduler
+ 1118  systemctl status kube-scheduler
+ 1119  journalctl -u kube-scheduler -r
+ 1120  kubectl get componentstatuses --kubeconfig admin.kubeconfig
+ 1121  cat <<EOF | kubectl apply --kubeconfig admin.kubeconfig -f -
+ 1122  apiVersion: rbac.authorization.k8s.io/v1beta1
+ 1123  kind: ClusterRole
+ 1124  metadata:
+ 1125  annotations:
+ 1126      rbac.authorization.kubernetes.io/autoupdate: "true"
+ 1127  labels:
+ 1128      kubernetes.io/bootstrapping: rbac-defaults
+ 1129  name: system:kube-apiserver-to-kubelet
+ 1130  rules:
+ 1131  - apiGroups:
+ 1132      - ""
+ 1133      resources:
+ 1134      - nodes/proxy
+ 1135      - nodes/stats
+ 1136      - nodes/log
+ 1137      - nodes/spec
+ 1138      - nodes/metrics
+ 1139      verbs:
+ 1140      - "*"
+ 1141  EOF
+ 1142  cat <<EOF | kubectl apply --kubeconfig admin.kubeconfig -f -
+ 1143  apiVersion: rbac.authorization.k8s.io/v1beta1
+ 1144  kind: ClusterRole
+ 1145  metadata:
+ 1146  annotations:
+ 1147      rbac.authorization.kubernetes.io/autoupdate: "true"
+ 1148  labels:
+ 1149      kubernetes.io/bootstrapping: rbac-defaults
+ 1150  name: system:kube-apiserver-to-kubelet
+ 1151  rules:
+ 1152  - apiGroups:
+ 1153      - ""
+ 1154      resources:
+ 1155      - nodes/proxy
+ 1156      - nodes/stats
+ 1157      - nodes/log
+ 1158      - nodes/spec
+ 1159      - nodes/metrics
+ 1160      verbs:
+ 1161      - "*"
+ 1162  EOF
+ 1163  cat <<EOF | kubectl apply --kubeconfig admin.kubeconfig -f -
+ 1164  apiVersion: rbac.authorization.k8s.io/v1beta1
+ 1165  kind: ClusterRole
+ 1166  metadata:
+ 1167    annotations:
+ 1168      rbac.authorization.kubernetes.io/autoupdate: "true"
+ 1169    labels:
+ 1170      kubernetes.io/bootstrapping: rbac-defaults
+ 1171    name: system:kube-apiserver-to-kubelet
+ 1172  rules:
+ 1173    - apiGroups:
+ 1174        - ""
+ 1175      resources:
+ 1176        - nodes/proxy
+ 1177        - nodes/stats
+ 1178        - nodes/log
+ 1179        - nodes/spec
+ 1180        - nodes/metrics
+ 1181      verbs:
+ 1182        - "*"
+ 1183  EOF
+ 1184  cat <<EOF | kubectl apply --kubeconfig admin.kubeconfig -f -
+ 1185  apiVersion: rbac.authorization.k8s.io/v1
+ 1186  kind: ClusterRole
+ 1187  metadata:
+ 1188    annotations:
+ 1189      rbac.authorization.kubernetes.io/autoupdate: "true"
+ 1190    labels:
+ 1191      kubernetes.io/bootstrapping: rbac-defaults
+ 1192    name: system:kube-apiserver-to-kubelet
+ 1193  rules:
+ 1194    - apiGroups:
+ 1195        - ""
+ 1196      resources:
+ 1197        - nodes/proxy
+ 1198        - nodes/stats
+ 1199        - nodes/log
+ 1200        - nodes/spec
+ 1201        - nodes/metrics
+ 1202      verbs:
+ 1203        - "*"
+ 1204  EOF
+ 1205  cat <<EOF | kubectl apply --kubeconfig admin.kubeconfig -f -
+ 1206  apiVersion: rbac.authorization.k8s.io/v1
+ 1207  kind: ClusterRoleBinding
+ 1208  metadata:
+ 1209    name: system:kube-apiserver
+ 1210    namespace: ""
+ 1211  roleRef:
+ 1212    apiGroup: rbac.authorization.k8s.io
+ 1213    kind: ClusterRole
+ 1214    name: system:kube-apiserver-to-kubelet
+ 1215  subjects:
+ 1216    - apiGroup: rbac.authorization.k8s.io
+ 1217      kind: User
+ 1218      name: kubernetes
+ 1219  EOF
+ 1220  exit 
+ 1221  history
+ 1222  history > controller_history.txt

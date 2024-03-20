@@ -1,0 +1,1000 @@
+  570  for instance in worker-0 worker-1 worker-2; do     lxc file push${instance}.kubeconfig kube-proxy.kubeconfig ${instance}/root/;     done
+  571  for instance in worker-0 worker-1 worker-2; do     lxc file push ${instance}.kubeconfig kube-proxy.kubeconfig ${instance}/root/;     done
+  572  for instance in controller-0 controller-1 controller-2; do         lxc file push admin.kubeconfig kube-controller-manager.kubeconfig kube-scheduler.kubeconfig ${instance}/root/;     done
+  573  lxc list
+  574  cat <<EOF | sudo tee /etc/systemd/system/etcd.service
+  575  [Unit]
+  576  Description=etcd
+  577  Documentation=https://github.com/coreos
+  578  [Service]
+  579  Type=notify
+  580  ExecStart=/usr/local/bin/etcd \\
+  581  --name ${ETCD_NAME} \\
+  582  --cert-file=/etc/etcd/kubernetes.pem \\
+  583  --key-file=/etc/etcd/kubernetes-key.pem \\
+  584  --peer-cert-file=/etc/etcd/kubernetes.pem \\
+  585  --peer-key-file=/etc/etcd/kubernetes-key.pem \\
+  586  --trusted-ca-file=/etc/etcd/ca.pem \\
+  587  --peer-trusted-ca-file=/etc/etcd/ca.pem \\
+  588  --peer-client-cert-auth \\
+  589  --client-cert-auth \\
+  590  --initial-advertise-peer-urls 'https://${INTERNAL_IP}:2380' \\
+  591  --listen-peer-urls 'https://${INTERNAL_IP}:2380' \\
+  592  --listen-client-urls 'https://${INTERNAL_IP}:2379',https://127.0.0.1:2379 \\
+  593  --advertise-client-urls https://${INTERNAL_IP}:2379 \\
+  594  --initial-cluster-token etcd-cluster-0 \\
+  595  --initial-cluster controller-0=https://10.71.134.162:2380,controller-1=https://10.71.134.83:2380,controller-2=https://10.71.134.179:2380 \\
+  596  --initial-cluster-state new \\
+  597  --data-dir=/var/lib/etcd
+  598  Restart=on-failure
+  599  RestartSec=5
+  600  [Install]
+  601  WantedBy=multi-user.target
+  602  EOF
+  603  lxc exec controller-0 bash
+  604  lxc list
+  605  lxc exec controller-0 bash
+  606  tmux
+  607  xit
+  608  exit
+  609  lxc exec controller-0 bash
+  610  cat > encryption-config.yaml <<EOF
+  611  kind: EncryptionConfig
+  612  apiVersion: v1
+  613  resources:
+  614    - resources:
+  615        - secrets
+  616      providers:
+  617        - aescbc:
+  618            keys:
+  619              - name: key1
+  620                secret: ${ENCRYPTION_KEY}
+  621        - identity: {}
+  622  EOF
+  623  echo $ENCRYPTION_KEY
+  624  ENCRYPTION_KEY=$(head -c 32 /dev/urandom | base64)
+  625  cat > encryption-config.yaml <<EOF
+  626  kind: EncryptionConfig
+  627  apiVersion: v1
+  628  resources:
+  629    - resources:
+  630        - secrets
+  631      providers:
+  632        - aescbc:
+  633            keys:
+  634              - name: key1
+  635                secret: ${ENCRYPTION_KEY}
+  636        - identity: {}
+  637  EOF
+  638  for instance in controller-0 controller-1 controller-2; do         lxc file push encryption-config.yaml ${instance}/root/;     done
+  639  lxc exec controller-0 bash
+  640  lsc list
+  641  lxc list
+  642  ping 10.71.134.83
+  643  lxc exec controller-0 bash
+  644  ls
+  645  cd certs/
+  646  ls
+  647  KUBERNETES_PUBLIC_ADDRESS=10.71.134.126
+  648  curl --cacert ca.pem https://${KUBERNETES_PUBLIC_ADDRESS}:6443/version
+  649  lxc exec worker-0 bash
+  650  lxc exec worker-0 ls
+  651  lxc exec worker-1 ls
+  652  lxc exec worker-2 ls
+  653  lxc exec controller-0 ls
+  654  lxc exec controller-1 ls
+  655  lxc exec controller-2 ls
+  656  ENCRYPTION_KEY=$(head -c 32 /dev/urandom | base64)
+  657  cat > encryption-config.yaml <<EOF
+  658  kind: EncryptionConfig
+  659  apiVersion: v1
+  660  resources:
+  661  - resources:
+  662      - secrets
+  663      providers:
+  664      - aescbc:
+  665          keys:
+  666              - name: key1
+  667              secret: ${ENCRYPTION_KEY}
+  668      - identity: {}
+  669  EOF
+  670  ls *.yaml
+  671  for instance in controller-0 controller-1 controller-2; do         lxc file push encryption-config.yaml ${instance}/root/;     done
+  672  lxc exec controller-2 ls
+  673  lxc exec controller-2 ls *yaml
+  674  lxc exec controller-2 bash
+  675  lxc exec controller-0 bash
+  676  lxc exec controller-1 bash
+  677  lxc exec controller-2 bash
+  678  lxc exec controller-0 bash
+  679  tmux
+  680  lxc exec controller-1 bash
+  681  lxc list
+  682  lxc exec worker-1 bash
+  683  lxc exec controller-0 bash
+  684  lxc list
+  685  lxc exec worker-0 bash
+  686  lxc exec controller-0 kubectl get nodes --kubeconfig admin.kubeconfig
+  687  lxc exec controller-0 bash
+  688  lxc exec controller-2 bash
+  689  lxc list
+  690  lxc exec worker-2 bash
+  691  lxc lsit
+  692  lxc list
+  693  sudo su
+  694  lxc list
+  695  lxc exec controller-2 bash
+  696  lxc list
+  697  id
+  698  lxd lsit
+  699  lxd ls
+  700  lxc list
+  701  sudo systemctl daemon-reload
+  702  sudo systemctl start snap.lxd.daemon
+  703  snap.lxd.daemon.unix.socket
+  704  udo systemctl start snap.lxd.daemon snap.lxd.daemon.unix.socket 
+  705  sudo systemctl start snap.lxd.daemon snap.lxd.daemon.unix.socket 
+  706  lxd
+  707  sudo lxd
+  708  lxc ls
+  709  sudo systemctl start snap.lxd.daemon.service snap.lxd.daemon.unix.socket
+  710  journalctl -xe
+  711  sudo systemctl daemon-reload
+  712  sudo systemctl start snap.lxd.daemon snap.lxd.daemon.unix.socket
+  713  systemctl status snap.lxd.daemon
+  714  systemctl restart systemctl status snap.lxd.daemon
+  715  sudo systemctl restart snap.lxd.daemon
+  716  sudo systemctl restart  snap.lxd.activate.service  
+  717  sudo systemctl restart  
+  718  sudo systemctl restart  snap.lxd.workaround.service 
+  719  sudo systemctl restart  snap.lxd.daemon.unix.socket
+  720  systemctl -a | grep snap.lxd
+  721  sudo systemctl restart   snap.lxd.daemon.service 
+  722  systemctl -a | grep snap.lxd
+  723  lxc ls
+  724  jusudo journalctl -n 300
+  725  sudo journalctl -n 300
+  726  systemctl --failed 
+  727  systemctl -a | grep lxd    
+  728  run-snapd-ns-lxd.mnt.mount 
+  729  journalctl -u snap.lxd.daemon.service -n 20    
+  730  curl http://unix.socket/1.0
+  731  cat /var/snap/lxd/common/lxd/unix.socket
+  732  lxc lsit
+  733  lxc ls
+  734  sudo systemctl status snap.lxd.daemon
+  735  sudo systemctl start snap.lxd.daemon
+  736  sudo systemctl status snap.lxd.daemon
+  737  sudo ls -l /var/snap/lxd/common/lxd/unix.socket
+  738  sudo chown root:lxd /var/snap/lxd/common/lxd/unix.socket
+  739  sudo snap get lxd
+  740  sudo systemctl restart snap.lxd.daemon
+  741  sudo ls -l /var/snap/lxd/common/lxd/unix.socket
+  742  sudo systemctl status snap.lxd.daemon
+  743  sudo systemctl status snap.lxd.daemon.unix.socket
+  744  sudo systemctl reset-failed snap.lxd.daemon.service
+  745  sudo systemctl start snap.lxd.daemon
+  746  sudo snap get lxd
+  747  sudo snap remove lxd
+  748  lxd 
+  749  sudo ldx
+  750  lxc ls
+  751  sudo systemctl status snap.lxd.daemon.unix.socket
+  752  sudo systemctl status snap.lxd.daemon
+  753  journalctl -xeu lxd.service
+  754  journalctl -xeu lxd.daemon
+  755  journalctl -u lxd.daemon
+  756  journalctl -xeu lxd.daemon.unix.
+  757  journalctl -u snap.lxd.daemon.unix.socket
+  758  systemctl list-unit-files | grep snap.lxd
+  759  sudo systemctl start snap.lxd.daemon.unix.socket
+  760  journalctl -u snap.lxd.daemon.unix.socket
+  761  systemctl status snap.lxd.daemon.unix.socket
+  762  watch systemctl status snap.lxd.daemon.unix.socket
+  763  systemctl status snap.lxd.daemon.service
+  764  systemctl restart snap.lxd.daemon.service
+  765  sudo systemctl restart snap.lxd.daemon.service
+  766  systemctl status snap.lxd.daemon.service
+  767  systemctl status snap.lxd.daemon
+  768  systemctl status lxd.daemon
+  769  systemctl status snap.lxd.daemon
+  770  watch systemctl status snap.lxd.daemon.unix.socket
+  771  journalctl -u snap.lxd.daemon
+  772  journalctl -u snap.lxd.daemon -tail
+  773  journalctl -u snap.lxd.daemon | tail
+  774  sudo snap refresh lxd
+  775  sudo lxd sql global "DELETE FROM nodes WHERE id=1;"
+  776  ls -l /var/snap/lxd/common/lxd/unix.socket
+  777  sudo systemctl restart snap.lxd.daemon
+  778  snap services
+  779  systemctl status snap.lxd.daemon.unix.socket
+  780  sudo reboot
+  781  lxc info
+  782  sudo lxc info
+  783  cat /proc/self/attr/current
+  784  lxc list
+  785  lxd list
+  786  lxd
+  787  systemctl status snap.lxd.daemon.unix.socket
+  788  systemctl status snap.lxd.daemon
+  789  systectl stauts -a
+  790  systectl status -a
+  791  systemctl status -a
+  792  systemctl status --help
+  793  systemctl status is-failed
+  794  systemctl status is-failed snap
+  795  systemctl status is-failed snap*
+  796  systemctl status snap.lxd.daemon
+  797  systemctl status lxd.daemon
+  798  snap info lxd.daemon
+  799  snap info 
+  800  snap info list
+  801  snap info -list
+  802  snap info -a
+  803  snap info lxd
+  804  systemctl status snap.lxd.daemon.unix.socket
+  805  systemctl restart snap.lxd.daemon.unix.socket
+  806  sudo systemctl restart snap.lxd.daemon.unix.socket
+  807  systemctl status snap.lxd.daemon.unix.socket
+  808  sudo systemctl restart snap.lxd.daemon.unix.socket
+  809  sudo systemctl restart snap.lxd.daemon
+  810  systemctl status snap.lxd.daemon
+  811  ]lxc
+  812  lxc
+  813  ]lxc
+  814  systemctl status snap.lxd.daemon
+  815  my name us anurag i work in impressico
+  816  sudo systemctl start snap.lxd.daemon snap.lxd.daemon.unix.socket
+  817  journalctl -xe
+  818  lxc-checkconfig
+  819  lxc list
+  820  lxc-ls
+  821  sudo apt-get install lxc
+  822  lxc-checkconfig
+  823  lxc
+  824  lxc list
+  825  lxc --version
+  826  journalctl -u snap.lxd.daemon.service -n 20    
+  827  ystemctl restart snap.lxd.daemon.unix.socket
+  828  systemctl restart snap.lxd.daemon.unix.socket
+  829  sudo systemctl restart snap.lxd.daemon.unix.socket
+  830  sudo  lxc list
+  831  lxd init
+  832  sudo lxd init
+  833  lxc list
+  834  sudo lxc list
+  835  lxd start
+  836  groups
+  837  equery uses lxc
+  838  dmesg | grep lxc
+  839  sudo dmesg | grep lxc
+  840  snap services lxd 
+  841  systemctl list-unit-files | grep snap
+  842  lxc list
+  843  systemctl status snap.lxd.daemon.unix.socket
+  844  systemctl stop snap.lxd.daemon.unix.socket
+  845  sudo systemctl stop snap.lxd.daemon.unix.socket
+  846  [200~lxd --debug --group lxd~
+  847  lxd --debug --group lxd
+  848  sudo lxd --debug --group lxd
+  849  systemctl status snap.lxd.daemon.unix.socket
+  850  snap list
+  851  lxd recover 
+  852  sudo lsof -i :8443
+  853  sudo lxd --debug --group lxd
+  854  snap remove lxd
+  855  sudo snap remove lxd
+  856  systemctl status lxc
+  857  sudo snap install lxd
+  858  sudo apt-get update && sudo apt-get install lxc -y
+  859  sudo snap install lxd
+  860  lxd init
+  861  lxd recover
+  862  lxd --help
+  863  lxc list
+  864  lxc storage list
+  865  lxc recover deafult
+  866  lxd recover deafult
+  867  lxd recover
+  868  lxc storage --help
+  869  lxc storage set default
+  870  lxc list
+  871  lxc restore haproxy default
+  872  lxc restore haproxy #2
+  873  lxc storage lsit
+  874  lxc storage list
+  875  lxc storage default
+  876  lxc storage set default
+  877  lxc storage help
+  878  lxc storage --help
+  879  lxc storage get default
+  880  lxc storage list default
+  881  lxc storage info default
+  882  lxc storage show default
+  883  lxc storage volume
+  884  lxc storage volumne restore default
+  885  lxc storage volume restore default
+  886  lxc list
+  887  lxc profile create k8s
+  888  lxc launch ubuntu:22.04 controller-0 --profile k8s
+  889  lxc launch ubuntu:22.04 worker-0 --profile k8s
+  890  lxc list
+  891  lxc launch images:ubuntu/jammy haproxy
+  892  lxc image list images:ubuntu/jammy
+  893  lxc image list images:ubuntu
+  894  lxc list images:ubuntu
+  895  lxc images
+  896  lxc image list
+  897  lxc image list ubuntu/jammy
+  898  lxc image list ubuntu
+  899  lxc image list images:ubuntu
+  900  lxc image list images:
+  901  ping www.google.com
+  902  lxc image list images:
+  903  lxc update
+  904  lxc image list images:
+  905  lxc version 
+  906  xc version 
+  907  lxc list
+  908  lxd
+  909  sudo lxd
+  910  systemctl restart ldx
+  911  sudo systemctl restart lxd
+  912  sudo systemctl restart snap.lxd
+  913  sudo systemctl restart snap.lxd.adaemon
+  914  sudo systemctl restart snap.lxd.daemon
+  915  sudo lxd
+  916  systemctl stop snap.lxd.daemon
+  917  sudo systemctl stop snap.lxd.daemon
+  918  sudo lxd
+  919  systemctl stop snap.lxd.daemon.unix.socket
+  920  sudo systemctl stop snap.lxd.daemon.unix.socket
+  921  sudo systemctl stop snap.lxd.daemon
+  922  sudo apt-get uninstall lxc
+  923  sudo apt-get remove lxc
+  924  lxc
+  925  lxc list
+  926  lxc
+  927  sudo apt-get remove lxc
+  928  sudo apt autoremove
+  929  lxc
+  930  sudo systemctl stop lxc
+  931  sudo systemctl status lxc
+  932  ls
+  933  sudo apt-get install lxc
+  934  lxc-checkconfig
+  935  lxc-create --name mycontainer --template download
+  936  lxc list
+  937  ls
+  938  lxc list
+  939  lxc exec controller-0 bash
+  940  ls
+  941  cd certs/
+  942  ls
+  943  cat worker-0.kubeconfig 
+  944  lxc list
+  945  cat  worker-0.pem 
+  946  cat  worker-0-key.pem 
+  947  ll
+  948  cat kube-proxy.kubeconfig
+  949  cat kubernetes.csr
+  950  cat  kubernetes-csr.json
+  951  cat kubernetes-key.pem
+  952  cat kubernetes.pem
+  953  lxc launch ubuntu:22.04 haproxy --profile k8s
+  954  lxc list
+  955  lxc stop
+  956  lxc stop hapoxy
+  957  lxc stop haproxy
+  958  lxc network attach lxdbr0 haproxy eth0 eth0
+  959  lxc list
+  960  lxc start haproxy
+  961  wget -q --show-progress --https-only --timestamping https://github.com/cloudflare/cfssl/releases/download/v1.6.0/cfssl_1.6.0_linux_amd64  -O cfssl
+  962  cfssl --version
+  963  cfssl version
+  964  cfssljson --version
+  965  kubectl version --client
+  966  ll
+  967  rm -rf cfssl encryption-config.yaml *.json *daemon*
+  968  ll
+  969  echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
+  970  kubectl version --client
+  971  kubectl
+  972  which kubrctl
+  973  which kubectl
+  974  mv kubectl /usr/local/bin/kubectl
+  975  sudo mv kubectl /usr/local/bin/kubectl
+  976  kubectl --version
+  977  sudo kubectl --version
+  978  kubectl --version
+  979  sudo su
+  980  kubectl version
+  981  {
+  982  cat > ca-config.json <<EOF{
+  983  "signing": {
+  984      "default": {
+  985      "expiry": "8760h"
+  986      },
+  987      "profiles": {
+  988      "kubernetes": {
+  989          "usages": ["signing", "key encipherment", "server auth", "client auth"],
+  990          "expiry": "8760h"
+  991      }
+  992      }
+  993  }
+  994  }
+  995  EOF
+  996  cat > ca-csr.json <<EOF{
+  997  "CN": "kubernetes",
+  998  "key": {
+  999      "algo": "rsa",
+ 1000      "size": 2048
+ 1001  },
+ 1002  "names": [
+ 1003      {
+ 1004      "C": "India",
+ 1005      "L": "Delhi",
+ 1006      "O": "Kubernetes",
+ 1007      "OU": "CA",
+ 1008      "ST": "Delhi"
+ 1009      }
+ 1010  ]
+ 1011  }
+ 1012  EOF
+ 1013   cfssl gencert -initca ca-csr.json | cfssljson -bare ca
+ 1014  cd certs/
+ 1015  {
+ 1016  cat > ca-config.json <<EOF{
+ 1017  "signing": {
+ 1018      "default": {
+ 1019      "expiry": "8760h"
+ 1020      },
+ 1021      "profiles": {
+ 1022      "kubernetes": {
+ 1023          "usages": ["signing", "key encipherment", "server auth", "client auth"],
+ 1024          "expiry": "8760h"
+ 1025      }
+ 1026      }
+ 1027  }
+ 1028  }
+ 1029  EOF
+ 1030  cat > ca-csr.json <<EOF{
+ 1031  "CN": "kubernetes",
+ 1032  "key": {
+ 1033      "algo": "rsa",
+ 1034      "size": 2048
+ 1035  },
+ 1036  "names": [
+ 1037      {
+ 1038      "C": "India",
+ 1039      "L": "Delhi",
+ 1040      "O": "Kubernetes",
+ 1041      "OU": "CA",
+ 1042      "ST": "Delhi"
+ 1043      }
+ 1044  ]
+ 1045  }
+ 1046  EOF
+ 1047   cfssl gencert -initca ca-csr.json | cfssljson -bare ca; }
+ 1048  {
+ 1049  cat > admin-csr.json <<EOF{
+ 1050  "CN": "admin",
+ 1051  "key": {
+ 1052      "algo": "rsa",
+ 1053      "size": 2048
+ 1054  },
+ 1055  "names": [
+ 1056      {
+ 1057      "C": "India",
+ 1058      "L": "Delhi",
+ 1059      "O": "system:masters",
+ 1060      "OU": "Kubernetes The Hard Way",
+ 1061      "ST": "Delhi"
+ 1062      }
+ 1063  ]
+ 1064  }
+ 1065  EOF
+ 1066   cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=kubernetes admin-csr.json | cfssljson -bare admin; }
+ 1067  lxc list | grep $instance | awk '{print$6}'
+ 1068  lxc list | grep worker-0 | awk '{print$6}'
+ 1069  for instance in worker-0 worker-1 worker-2; do
+ 1070      cat > ${instance}-csr.json <<EOF{
+ 1071  "CN": "system:node:${instance}",
+ 1072  "key": {
+ 1073      "algo": "rsa",
+ 1074      "size": 2048
+ 1075  },
+ 1076  "names": [
+ 1077      {
+ 1078      "C": "India",
+ 1079      "L": "Delhi",
+ 1080      "O": "system:nodes",
+ 1081      "OU": "Kubernetes The Hard Way",
+ 1082      "ST": "Delhi"
+ 1083      }
+ 1084  ]
+ 1085  }
+ 1086  EOF
+ 1087  EXTERNAL_IP=$(lxc list | grep $instance | awk '{print$6}'); echo $EXTERNAL_IP
+ 1088  cfssl gencert     -ca=ca.pem     -ca-key=ca-key.pem     -config=ca-config.json     -hostname=${instance},${EXTERNAL_IP}     -profile=kubernetes     ${instance}-csr.json | cfssljson -bare ${instance}; done
+ 1089  {
+ 1090  cat > kube-controller-manager-csr.json <<EOF{
+ 1091  "CN": "system:kube-controller-manager",
+ 1092  "key": {
+ 1093      "algo": "rsa",
+ 1094      "size": 2048
+ 1095  },
+ 1096  "names": [
+ 1097      {
+ 1098      "C": "India",
+ 1099      "L": "Delhi",
+ 1100      "O": "system:kube-controller-manager",
+ 1101      "OU": "Kubernetes The Hard Way",
+ 1102      "ST": "Delhi"
+ 1103      }
+ 1104  ]
+ 1105  }
+ 1106  EOF
+ 1107   cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=kubernetes kube-controller-manager-csr.json | cfssljson -bare kube-controller-manager }
+ 1108  {
+ 1109  cat > kube-proxy-csr.json <<EOF{
+ 1110  "CN": "system:kube-proxy",
+ 1111  "key": {
+ 1112      "algo": "rsa",
+ 1113      "size": 2048
+ 1114  },
+ 1115  "names": [
+ 1116      {
+ 1117      "C": "India",
+ 1118      "L": "Delhi",
+ 1119      "O": "system:node-proxier",
+ 1120      "OU": "Kubernetes The Hard Way",
+ 1121      "ST": "Delhi"
+ 1122      }
+ 1123  ]
+ 1124  }
+ 1125  EOF
+ 1126   cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=kubernetes kube-proxy-csr.json | cfssljson -bare kube-proxy; }
+ 1127  {
+ 1128  cat > kube-scheduler-csr.json <<EOF{
+ 1129  "CN": "system:kube-scheduler",
+ 1130  "key": {
+ 1131      "algo": "rsa",
+ 1132      "size": 2048
+ 1133  },
+ 1134  "names": [
+ 1135      {
+ 1136      "C": "India",
+ 1137      "L": "Delhi",
+ 1138      "O": "system:kube-scheduler",
+ 1139      "OU": "Kubernetes The Hard Way",
+ 1140      "ST": "Delhi"
+ 1141      }
+ 1142  ]
+ 1143  }
+ 1144  EOF
+ 1145   cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=kubernetes kube-scheduler-csr.json | cfssljson -bare kube-scheduler }
+ 1146  for instance in worker-0 worker-1 worker-2; do
+ 1147      cat > ${instance}-csr.json <<EOF{
+ 1148  "CN": "system:node:${instance}",
+ 1149  "key": {
+ 1150      "algo": "rsa",
+ 1151      "size": 2048
+ 1152  },
+ 1153  "names": [
+ 1154      {
+ 1155      "C": "India",
+ 1156      "L": "Delhi",
+ 1157      "O": "system:nodes",
+ 1158      "OU": "Kubernetes The Hard Way",
+ 1159      "ST": "Delhi"
+ 1160      }
+ 1161  ]
+ 1162  }
+ 1163  EOF
+ 1164  EXTERNAL_IP=$(lxc list | grep $instance | awk '{print$6}'); echo $EXTERNAL_IP ${instance}
+ 1165  cfssl gencert     -ca=ca.pem     -ca-key=ca-key.pem     -config=ca-config.json     -hostname=${instance},${EXTERNAL_IP}     -profile=kubernetes     ${instance}-csr.json | cfssljson -bare ${instance}; done
+ 1166  lxc list haproxy | awk '{print$6}'
+ 1167  lxc list haproxy
+ 1168  lxc list haproxy --help
+ 1169  lxc list haproxy --fast
+ 1170  lxc list haproxy --columns 
+ 1171  lxc list haproxy --columns IPV4
+ 1172  lxc list haproxy --columns I
+ 1173  lxc list haproxy --columns --help
+ 1174  lxc list haproxy --columns "IPV4"
+ 1175  lxc list  --c haproxy:IPV4
+ 1176  lxc list  -c haproxy:IPV4
+ 1177  lxc list haproxy --columns=IPV4
+ 1178  lxc list --columns=IPV4
+ 1179  lxc list --columns="IPV4"
+ 1180  lxc list -f=json
+ 1181  lxc list  haproxy -f=json
+ 1182  lxc list  haproxy -f=json | grep ipv
+ 1183  lxc list  haproxy -f=json | grep IPV
+ 1184  lxc list  haproxy -f=json | grep 10.
+ 1185  lxc list  haproxy -c network.eth0
+ 1186  lxc list  haproxy -c ns,network.eth0
+ 1187  lxc-info -n haproxy
+ 1188  lxc info -n haproxy
+ 1189  lxc info  haproxy
+ 1190  lxc info haproxy
+ 1191  lxc info haproxy -iH
+ 1192  lxc info haproxy -i
+ 1193  lxc info haproxy --help
+ 1194  lxc-info
+ 1195  lxc -help
+ 1196  lxc --help
+ 1197  lxc info haproxy
+ 1198  lxc info haproxy --resources
+ 1199  lxc info haproxy --resources eth0
+ 1200  lxc list --help
+ 1201  lxc list -c
+ 1202  lxc list -c=nsacPt
+ 1203  lxc list -c=ni
+ 1204  lxc list -c=nI
+ 1205  lxc list -c=ns
+ 1206  lxc list 
+ 1207  lxc list -c=niP
+ 1208  lxc list -c=niPV
+ 1209  lxc list -c=niPV4
+ 1210  lxc list -c=nip
+ 1211  lxc list -c=ne
+ 1212  lxc list -c=n4
+ 1213  lxc list haproxy -c=n4
+ 1214  lxc list haproxy -c=n4 | awk '{print$2}'
+ 1215  lxc list haproxy -c=n4 | awk '{print$3}'
+ 1216  lxc list haproxy -c=n4 | awk '{print$4}'
+ 1217  lxc list haproxy -c=n4 | awk '{print$4}' --fast
+ 1218  lxc list haproxy -c=n4 | awk '{print$4}' 
+ 1219  lxc list haproxy -c=n4 --f=json
+ 1220  lxc list haproxy -c=n4 -f=json
+ 1221  lxc list haproxy -c=n4 -f=yaml
+ 1222  lxc list haproxy -c=n4 -f=compact
+ 1223  lxc list haproxy -c=n4 -f=compact | awk '{print$2}'
+ 1224  lxc list haproxy -c=n4 -f=compact | awk '{print$2}' | 0
+ 1225  lxc list haproxy -c=n4 -f=compact | awk '{print$2}'
+ 1226  lxc list
+ 1227  kubectl
+ 1228  kubectl version
+ 1229  l
+ 1230  ll
+ 1231  cd certs/
+ 1232  ls
+ 1233  rm -rf
+ 1234  ll
+ 1235  rm -rf *
+ 1236  ll
+ 1237  lxc exec controller-0 -- env CONTROLLER_0="$CONTROLLER_0" CONTROLLER_1="$CONTROLLER_1" CONTROLLER_2="$CONTROLLER_2" bash
+ 1238  hostname -i
+ 1239  lxc exec controller-0 bash
+ 1240  lxc list haproxy -c=n4 -f=compact|grep haproxy | awk '{print$2}'
+ 1241  cd certs/
+ 1242  KUBERNETES_PUBLIC_ADDRESS=$(lxc list haproxy -c=n4 -f=compact| grep haproxy | awk '{print$2}')
+ 1243  CONTROLLER-0=$(lxc list controller-0 -c=n4 -f=compact| grep controller-0 | awk '{print$2}')
+ 1244  CONTROLLER-1=$(lxc list controller-1 -c=n4 -f=compact| grep controller-1 | awk '{print$2}')
+ 1245  CONTROLLER-2=$(lxc list controller-2 -c=n4 -f=compact| grep controller-2 | awk '{print$2}')
+ 1246  echo $KUBERNETES_PUBLIC_ADDRESS $CONTROLLER-0 $CONTROLLER-1 $CONTROLLER-2
+ 1247  KUBERNETES_PUBLIC_ADDRESS=$(lxc list haproxy -c=n4 -f=compact| grep haproxy | awk '{print$2}')
+ 1248  CONTROLLER_0=$(lxc list controller-0 -c=n4 -f=compact| grep controller-0 | awk '{print$2}')
+ 1249  CONTROLLER_1=$(lxc list controller-1 -c=n4 -f=compact| grep controller-1 | awk '{print$2}')
+ 1250  CONTROLLER_2=$(lxc list controller-2 -c=n4 -f=compact| grep controller-2 | awk '{print$2}')
+ 1251  echo $KUBERNETES_PUBLIC_ADDRESS $CONTROLLER-0 $CONTROLLER-1 $CONTROLLER-2
+ 1252  echo $KUBERNETES_PUBLIC_ADDRESS $CONTROLLER_0 $CONTROLLER_1 $CONTROLLER_2
+ 1253  lxc lsit
+ 1254  lxc list
+ 1255  { KUBERNETES_PUBLIC_ADDRESS=$(lxc list haproxy -c=n4 -f=compact| grep haproxy | awk '{print$2}'); CONTROLLER_0=$(lxc list controller-0 -c=n4 -f=compact| grep controller-0 | awk '{print$2}'); CONTROLLER_1=$(lxc list controller-1 -c=n4 -f=compact| grep controller-1 | awk '{print$2}'); CONTROLLER_2=$(lxc list controller-2 -c=n4 -f=compact| grep controller-2 | awk '{print$2}'); }
+ 1256  echo $KUBERNETES_PUBLIC_ADDRESS $CONTROLLER_0 $CONTROLLER_1 $CONTROLLER_2
+ 1257  {
+ 1258  cat > service-account-csr.json <<EOF{
+ 1259  "CN": "service-accounts",
+ 1260  "key": {
+ 1261      "algo": "rsa",
+ 1262      "size": 2048
+ 1263  },
+ 1264  "names": [
+ 1265      {
+ 1266      "C": "India",
+ 1267      "L": "Delhi",
+ 1268      "O": "Kubernetes",
+ 1269      "OU": "Kubernetes The Hard Way",
+ 1270      "ST": "Delhi"
+ 1271      }
+ 1272  ]
+ 1273  }
+ 1274  EOF
+ 1275   cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=kubernetes service-account-csr.json | cfssljson -bare service-account }
+ 1276  for instance in worker-0 worker-1 worker-2; do lxc file push ca.pem ${instance}-key.pem ${instance}.pem ${instance}/root/; done
+ 1277  for instance in controller-0 controller-1 controller-2; do     lxc file push ca.pem ca-key.pem kubernetes-key.pem kubernetes.pem service-account-key.pem service-account.pem ${instance}/root/; done
+ 1278  {     lxc exec worker-0 ls;     lxc exec worker-1 ls;     lxc exec worker-2 ls; }
+ 1279  for instance in controller-0 controller-1 controller-2; do     lxc file push ca.pem ca-key.pem kubernetes-key.pem kubernetes.pem service-account-key.pem service-account.pem ${instance}/root/; done
+ 1280  {     lxc exec controller-0 ls;     lxc exec controller-1 ls;     lxc exec controller-2 ls; }
+ 1281  {     echo controller-0 | lxc exec controller-0 ls;     echo controller-1 | lxc exec controller-1 ls;     echo controller-2 | lxc exec controller-2 ls; }
+ 1282  {     echo controller-0 && lxc exec controller-0 ls;     echo controller-1 && lxc exec controller-1 ls;     echo controller-2 && lxc exec controller-2 ls; }
+ 1283  {     echo worker-0 && lxc exec worker-0 ls;     echo worker-1 && lxc exec worker-1 ls;     echo worker-2 && lxc exec worker-2 ls; }
+ 1284  echo $    KUBERNETES_PUBLIC_ADDRESS=10.71.134.126
+ 1285  echo $KUBERNETES_PUBLIC_ADDRESS=10.71.134.126
+ 1286  echo $
+ 1287  # check
+ 1288  echo $KUBERNETES_PUBLIC_ADDRESS
+ 1289  #
+ 1290  #check
+ 1291  # check
+ 1292  # if no IPv4 of haproxy
+ 1293  KUBERNETES_PUBLIC_ADDRESS=$(lxc list haproxy -c=n4 -f=compact| grep haproxy | awk '{print$2}')
+ 1294  # check
+ 1295  echo $KUBERNETES_PUBLIC_ADDRESS
+ 1296  for instance in worker-0 worker-1 worker-2; do kubectl config set-cluster kubernetes-the-hard-way     --certificate-authority=ca.pem     --embed-certs=true     --server=https://${KUBERNETES_PUBLIC_ADDRESS}:6443     --kubeconfig=${instance}.kubeconfig kubectl config set-credentials system:node:${instance}     --client-certificate=${instance}.pem     --client-key=${instance}-key.pem     --embed-certs=true     --kubeconfig=${instance}.kubeconfig kubectl config set-context default     --cluster=kubernetes-the-hard-way     --user=system:node:${instance}     --kubeconfig=${instance}.kubeconfig kubectl config use-context default --kubeconfig=${instance}.kubeconfig; done
+ 1297  { kubectl config set-cluster kubernetes-the-hard-way     --certificate-authority=ca.pem     --embed-certs=true     --server=https://${KUBERNETES_PUBLIC_ADDRESS}:6443     --kubeconfig=kube-proxy.kubeconfig kubectl config set-credentials system:kube-proxy     --client-certificate=kube-proxy.pem     --client-key=kube-proxy-key.pem     --embed-certs=true     --kubeconfig=kube-proxy.kubeconfig kubectl config set-context default     --cluster=kubernetes-the-hard-way     --user=system:kube-proxy     --kubeconfig=kube-proxy.kubeconfig kubectl config use-context default --kubeconfig=kube-proxy.kubeconfig; }
+ 1298  { kubectl config set-cluster kubernetes-the-hard-way     --certificate-authority=ca.pem     --embed-certs=true     --server=https://127.0.0.1:6443     --kubeconfig=kube-controller-manager.kubeconfig kubectl config set-credentials system:kube-controller-manager     --client-certificate=kube-controller-manager.pem     --client-key=kube-controller-manager-key.pem     --embed-certs=true     --kubeconfig=kube-controller-manager.kubeconfig kubectl config set-context default     --cluster=kubernetes-the-hard-way     --user=system:kube-controller-manager     --kubeconfig=kube-controller-manager.kubeconfig kubectl config use-context default --kubeconfig=kube-controller-manager.kubeconfig; }
+ 1299  { kubectl config set-cluster kubernetes-the-hard-way     --certificate-authority=ca.pem     --embed-certs=true     --server=https://127.0.0.1:6443     --kubeconfig=kube-scheduler.kubeconfig kubectl config set-credentials system:kube-scheduler     --client-certificate=kube-scheduler.pem     --client-key=kube-scheduler-key.pem     --embed-certs=true     --kubeconfig=kube-scheduler.kubeconfig kubectl config set-context default     --cluster=kubernetes-the-hard-way     --user=system:kube-scheduler     --kubeconfig=kube-scheduler.kubeconfig kubectl config use-context default --kubeconfig=kube-scheduler.kubeconfig; }
+ 1300  { kubectl config set-cluster kubernetes-the-hard-way     --certificate-authority=ca.pem     --embed-certs=true     --server=https://127.0.0.1:6443     --kubeconfig=admin.kubeconfig kubectl config set-credentials admin     --client-certificate=admin.pem     --client-key=admin-key.pem     --embed-certs=true     --kubeconfig=admin.kubeconfig kubectl config set-context default     --cluster=kubernetes-the-hard-way     --user=admin     --kubeconfig=admin.kubeconfig kubectl config use-context default --kubeconfig=admin.kubeconfig; }
+ 1301  for instance in worker-0 worker-1 worker-2; do lxc file push ${instance}.kubeconfig kube-proxy.kubeconfig ${instance}/root/; done
+ 1302  for instance in controller-0 controller-1 controller-2; do     lxc file push admin.kubeconfig kube-controller-manager.kubeconfig kube-scheduler.kubeconfig ${instance}/root/; done
+ 1303  echo worker-0 && lxc exec worker-0 ls
+ 1304  { echo worker-0 && lxc exec worker-0 ls; echo worker-1 && lxc exec worker-1 ls; echo worker-2 && lxc exec worker-2 ls; }
+ 1305  { echo controller-0 && lxc exec controller-0 ls; echo controller-1 && lxc exec controller-1 ls; echo controller-2 && lxc exec controller-2 ls; }
+ 1306  ENCRYPTION_KEY=$(head -c 32 /dev/urandom | base64)
+ 1307  cat > encryption-config.yaml <<EOF
+ 1308  kind: EncryptionConfig
+ 1309  apiVersion: v1
+ 1310  resources:
+ 1311    - resources:
+ 1312        - secrets
+ 1313      providers:
+ 1314        - aescbc:
+ 1315            keys:
+ 1316              - name: key1
+ 1317                secret: ${ENCRYPTION_KEY}
+ 1318        - identity: {}
+ 1319  EOF
+ 1320  for instance in controller-0 controller-1 controller-2; do lxc file push encryption-config.yaml ${instance}/root/; done
+ 1321  CHECK
+ 1322  ```
+ 1323  {
+ 1324  echo controller-0 && lxc exec controller-0 ls
+ 1325  echo controller-1 && lxc exec controller-1 ls
+ 1326  echo controller-2 && lxc exec controller-2 ls
+ 1327  }
+ 1328  { echo controller-0 && lxc exec controller-0 ls; echo controller-1 && lxc exec controller-1 ls; echo controller-2 && lxc exec controller-2 ls; }
+ 1329  lxc exec controller-0 bash
+ 1330  echo $CONTROLLER_
+ 1331  echo $CONTROLLER_=
+ 1332  echo $CONTROLLER_0
+ 1333  echo $CONTROLLER_0 > lxc exec controller-0 echo 
+ 1334  echo $CONTROLLER_0 > lxc exec controller-0 echo args
+ 1335  lxc exec controller-0 echo args
+ 1336  lxc exec controller-0 -- env CONTROLLER_0="$CONTROLLER_0" bash
+ 1337  lxc exec controller-0 -- env CONTROLLER_0="$CONTROLLER_0" CONTOLLER_1="$CONTROLLER_1" bash
+ 1338  { lxc exec controller-0 -- env CONTROLLER_0="$CONTROLLER_0" CONTROLLER_1="$CONTROLLER_1" CONTROLLER_2="$CONTROLLER_2"; lxc exec controller-1 -- env CONTROLLER_0="$CONTROLLER_0" CONTROLLER_1="$CONTROLLER_1" CONTROLLER_2="$CONTROLLER_2"; lxc exec controller-2 -- env CONTROLLER_0="$CONTROLLER_0" CONTROLLER_1="$CONTROLLER_1" CONTROLLER_2="$CONTROLLER_2"; }
+ 1339  lxc exec controller-0 bash
+ 1340  { lxc exec controller-0 -- env CONTROLLER_0="$CONTROLLER_0" CONTROLLER_1="$CONTROLLER_1" CONTROLLER_2="$CONTROLLER_2" ls; lxc exec controller-1 -- env CONTROLLER_0="$CONTROLLER_0"    CONTROLLER_1="$CONTROLLER_1" CONTROLLER_2="$CONTROLLER_2" ls; lxc exec controller-2 -- env CONTROLLER_0="$CONTROLLER_0" CONTROLLER_1="$CONTROLLER_1" CONTROLLER_2="$CONTROLLER_2" ls; }
+ 1341  echo $CONTROLLER_0 $CONTROLLER_1 $CONTROLLER_2
+ 1342  lxc exec controller-0 bash
+ 1343  lxc exec controller-0 -- env CONTROLLER_0="$CONTROLLER_0" CONTROLLER_1="$CONTROLLER_1" CONTROLLER_2="$CONTROLLER_2" bash
+ 1344  tmux
+ 1345  lxc exec controller-1 -- env CONTROLLER_0="$CONTROLLER_0"    CONTROLLER_1="$CONTROLLER_1" CONTROLLER_2="$CONTROLLER_2" bash
+ 1346  lxc exec controller-2 -- env CONTROLLER_0="$CONTROLLER_0" CONTROLLER_1="$CONTROLLER_1" CONTROLLER_2="$CONTROLLER_2" bash
+ 1347  ls
+ 1348  cd certs/
+ 1349  ls
+ 1350  cd ..
+ 1351  cd certs/
+ 1352  ll
+ 1353  lxc list
+ 1354  cd ..
+ 1355  lxc exec controller-0
+ 1356  lxc exec controller-0 bash
+ 1357  tmux
+ 1358  lxc exec controller-2 bash
+ 1359  lxc exec controlller-1 bash
+ 1360  echo $CONTROLLER_0 $CONTROLLER_1 $CONTROLLER_2
+ 1361  {     CONTROLLER_0=10.165.235.89;     CONTROLLER_1=10.165.235.123;     CONTROLLER_2=10.165.235.102; }
+ 1362  {     CONTROLLER_0=10.165.235.89;     CONTROLLER_1=10.165.235.123;     CONTROLLER_2=10.165.235.102; }
+ 1363  echo $CONTROLLER_0 $CONTROLLER_1 $CONTROLLER_2
+ 1364  INTERNAL_IP=$(hostname -i | awk '{print$2}')
+ 1365  ETCD_NAME=$(hostname -s)
+ 1366  echo $INTERNAL_IP $ETCD_NAME
+ 1367  cat <<EOF | sudo tee /etc/systemd/system/etcd.service
+ 1368  [Unit]
+ 1369  Description=etcd
+ 1370  Documentation=https://github.com/coreos
+ 1371  [Service]
+ 1372  Type=notify
+ 1373  ExecStart=/usr/local/bin/etcd \\
+ 1374  --name ${ETCD_NAME} \\
+ 1375  --cert-file=/etc/etcd/kubernetes.pem \\
+ 1376  --key-file=/etc/etcd/kubernetes-key.pem \\
+ 1377  --peer-cert-file=/etc/etcd/kubernetes.pem \\
+ 1378  --peer-key-file=/etc/etcd/kubernetes-key.pem \\
+ 1379  --trusted-ca-file=/etc/etcd/ca.pem \\
+ 1380  --peer-trusted-ca-file=/etc/etcd/ca.pem \\
+ 1381  --peer-client-cert-auth \\
+ 1382  --client-cert-auth \\
+ 1383  --initial-advertise-peer-urls 'https://${INTERNAL_IP}:2380' \\
+ 1384  --listen-peer-urls 'https://${INTERNAL_IP}:2380' \\
+ 1385  --listen-client-urls 'https://${INTERNAL_IP}:2379','https://127.0.0.1:2379' \\
+ 1386  --advertise-client-urls 'https://${INTERNAL_IP}:2379' \\
+ 1387  --initial-cluster-token etcd-cluster-0 \\
+ 1388  --initial-cluster controller-0='https://${CONTROLLER_0}:2380',controller-1='https://${CONTROLLER_1}:2380',controller-2='https://${CONTROLLER_2}:2380' \\
+ 1389  --initial-cluster-state new \\
+ 1390  --data-dir=/var/lib/etcd
+ 1391  Restart=on-failure
+ 1392  RestartSec=5
+ 1393  [Install]
+ 1394  WantedBy=multi-user.target
+ 1395  EOF
+ 1396  { sudo systemctl daemon-reload; sudo systemctl enable etcd; sudo systemctl start etcd; }
+ 1397  systemctl status etcd
+ 1398  clearn
+ 1399  clear
+ 1400  journalctl -u etcd -r
+ 1401  { ETCD_VER=v3.4.15; GOOGLE_URL=https://storage.googleapis.com/etcd; DOWNLOAD_URL=${GOOGLE_URL} wget -q --show-progress --https-only --timestamping  ${DOWNLOAD_URL}/${ETCD_VER}/etcd-${ETCD_VER}-linux-amd64.tar.gz tar -xvf etcd-${ETCD_VER}-linux-amd64.tar.gz; sudo mv etcd-${ETCD_VER}-linux-amd64/etcd* /usr/local/bin/; }
+ 1402  { ETCD_VER=v3.4.15; GOOGLE_URL=https://storage.googleapis.com/etcd; DOWNLOAD_URL=${GOOGLE_URL} wget -q --show-progress --https-only --timestamping  ${DOWNLOAD_URL}/${ETCD_VER}/etcd-${ETCD_VER}-linux-amd64.tar.gz tar -xvf etcd-${ETCD_VER}-linux-amd64.tar.gz; sudo mv etcd-${ETCD_VER}-linux-amd64/etcd* /usr/local/bin/; }
+ 1403  { etcd --version; etcdctl version; etcdutl version; }
+ 1404  INTERNAL_IP=$(hostname -i | awk '{print$2}')
+ 1405  ETCD_NAME=$(hostname -s)
+ 1406  echo $INTERNAL_IP $ETCD_NAME
+ 1407  lxc exec controller-1 bash
+ 1408  systemctl status kube-apiserver
+ 1409  systemctl status kubectl
+ 1410  kubectl version
+ 1411  lxc exec controller-0 bash
+ 1412  lxc exec container-0 bash
+ 1413  lxc list
+ 1414  lxc exec controller-0 bash
+ 1415  lxc list
+ 1416  tmux
+ 1417  lxc exec controller-2 bash
+ 1418  lxc exec controller-1 bash
+ 1419  lxc list
+ 1420  ls
+ 1421  cd certs/
+ 1422  ls
+ 1423  cd ..
+ 1424  lxc exec controller-0
+ 1425  ls
+ 1426  lxc exec controller-0 bash
+ 1427  lxc exec worker-0 bash
+ 1428  lxc list
+ 1429  lxc exec worker-0 bash
+ 1430  lxc exec worker-1 bash
+ 1431  ping 10.240.0.11
+ 1432  lxc exec worker-1 bash
+ 1433  wget -q --show-progress --https-only --timestamping https://storage.googleapis.com/kubernetes-release/release/v1.29.0/bin/linux/amd64/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.29.0/bin/linux/amd64/kube-proxy https://storage.googleapis.com/kubernetes-release/release/v1.29.0/bin/linux/amd64/kubelet
+ 1434  sudo mkdir -p /etc/cni/net.d /opt/cni/bin /var/lib/kubelet /var/lib/kube-proxy /var/lib/kubernetes /var/run/kubernetes
+ 1435  chmod +x kubectl kube-proxy kubelet 
+ 1436  sudo mv kubectl kube-proxy kubelet /usr/local/bin/
+ 1437  { wget https://github.com/containerd/containerd/releases/download/v1.6.8/containerd-1.6.8-linux-amd64.tar.gz wget https://github.com/opencontainers/runc/releases/download/v1.1.3/runc.amd64 sudo tar Cxzvf /usr/local containerd-1.6.8-linux-amd64.tar.gz; sudo install -m 755 runc.amd64 /usr/local/sbin/runc wget https://github.com/containernetworking/plugins/releases/download/v1.1.1/cni-plugins-linux-amd64-v1.1.1.tgz sudo mkdir -p /opt/cni/bin; sudo tar Cxzvf /opt/cni/bin cni-plugins-linux-amd64-v1.1.1.tgz sudo mkdir /etc/containerd containerd config default | sudo tee /etc/containerd/config.toml; sudo sed -i 's/SystemdCgroup \= false/SystemdCgroup \= true/g' /etc/containerd/config.toml sudo curl -L https://raw.githubusercontent.com/containerd/containerd/main/containerd.service -o /etc/systemd/system/containerd.service }
+ 1438  ls
+ 1439  lxc exec worker-2 bash
+ 1440  tmux
+ 1441  lxc exec controller-0
+ 1442  sudo ETCDCTL_API=3 etcdctl member list --endpoints=https://127.0.0.1:2379 --cacert=/etc/etcd/ca.pem --cert=/etc/etcd/kubernetes.pem --key=/etc/etcd/kubernetes-key.pem
+ 1443  lxc exec controller-0 bash
+ 1444  ls
+ 1445  cd certs/
+ 1446  ls
+ 1447  cat service-account-key.pem 
+ 1448  lxc exec controller-0 bash
+ 1449  lxc exec controller-1 bash
+ 1450  lxc exec controller-2 bash
+ 1451  cd ~
+ 1452  tmux
+ 1453  lxc exec controller-0 bash
+ 1454  lxc list
+ 1455  KUBERNETES_PUBLIC_ADDRESS=10.165.235.246
+ 1456  curl --cacert ca.pem https://${KUBERNETES_PUBLIC_ADDRESS}:6443/version
+ 1457  cd certs/
+ 1458  curl --cacert ca.pem https://${KUBERNETES_PUBLIC_ADDRESS}:6443/version
+ 1459  kubectl get componentstatuses --kubeconfig admin.kubeconfig
+ 1460  ls
+ 1461  lxc exec haproxy bash
+ 1462  kubectl
+ 1463  kubectl get componentstatuses --kubeconfig admin.kubeconfig
+ 1464  KUBERNETES_PUBLIC_ADDRESS=10.165.235.246
+ 1465  curl --cacert ca.pem https://${KUBERNETES_PUBLIC_ADDRESS}:6443/version
+ 1466  cd ..
+ 1467  mkdir ~/.kube
+ 1468  lxc file pull controller-0/roo/admin.kubeconfig ~/.kube/config
+ 1469  lxc file pull controller-0/root/admin.kubeconfig ~/.kube/config
+ 1470  ls
+ 1471  cd .kube/
+ 1472  ll
+ 1473  nano config 
+ 1474  kubectl get nodes
+ 1475  kubectl get pods
+ 1476  kubectl version --short
+ 1477  kubectl version
+ 1478  cd ..
+ 1479  dc ..
+ 1480  kubectl version
+ 1481  kubectl cluster-info
+ 1482  kubectl get cs
+ 1483  kubectl run myshell -it --rm --image busybox -- sh
+ 1484  kubectl label nodes --all node.kubernetes.io/exclude-from-external-load-balancers-
+ 1485  kubectl label nodes --all node.kubernetes.io
+ 1486  lxc exec controller-2 bash
+ 1487  kubectl describe pods
+ 1488  kubectl get nodes
+ 1489  kubectl describe pods
+ 1490  kubectl describe nodes worker-0
+ 1491  lxc list
+ 1492  watch kubectl get pods -o=wide
+ 1493  lxc list
+ 1494  kubectl get cs
+ 1495  sudo kubectl get cs
+ 1496  kubectl get cs
+ 1497  lxc exec worker-1 bash
+ 1498  kubectl get nodes
+ 1499  lxc exec worker-0 bash
+ 1500  kubectl get nodes
+ 1501  kubectl get pods
+ 1502  kubectl get cs
+ 1503  kubectl get --help
+ 1504  eixt
+ 1505  exit
+ 1506  lxc list
+ 1507  kubectl get pods
+ 1508  kubectl get nodes
+ 1509  kubectl get cs
+ 1510  kubectl get --help
+ 1511  kubectl get -a
+ 1512  kubectl get -A
+ 1513  tumux
+ 1514  tmux
+ 1515  kubectl describe pods myshell
+ 1516  watch kubectl get pods -o=wide
+ 1517  kubectl run myshell -it --image busybox --sh
+ 1518  kubectl run myshell -it --image busybox -- sh
+ 1519  kubectl run myshell1 -it --image busybox
+ 1520  kubectl run myshell1 --image busybox
+ 1521  kubectl run myshell2 --image busybox
+ 1522  kubectl describe pods myshell
+ 1523  kubectl describe nodes worker-0
+ 1524  kubectl describe pods myshell
+ 1525  kubectl taint nodes worker-0 node.kubernetes.io/not-ready=NoExecute:NoExecute-
+ 1526  kubectl taint nodes worker-1 node.kubernetes.io/unreachable=NoExecute:NoExecute-
+ 1527  kubectl taint nodes worker-1 unreachable=NoExecute:NoExecute-
+ 1528  kubectl taint nodes worker-1 op=Exists:NoExecute-
+ 1529  kubectl get nodes
+ 1530  kubectl describe nodes
+ 1531  kubectl taint nodes --all node-role.kubernetes.io/master-
+ 1532  kubectl label node <node_name> node-role.kubernetes.io/worker=worker
+ 1533  kubectl label node --all node-role.kubernetes.io/worker=worker
+ 1534  kubectl describe nodes
+ 1535  kubectl get nodes
+ 1536  kubeclt describe node worker-0
+ 1537  kubectl describe node worker-0
+ 1538  kubectl describe node worker-0 | grep Taint
+ 1539  kubectl taint nodes worker-0 node.kubernetes.io/disk-pressure:NoSchedule-
+ 1540  kubectl delete pods --all
+ 1541  kubectl run myshell --image busybox
+ 1542  kubectl describe node worker-0 | grep Taint
+ 1543  kubectl taint nodes worker-1 node.kubernetes.io/disk-pressure:NoSchedule-
+ 1544  kubectl taint nodes worker-2 node.kubernetes.io/disk-pressure:NoSchedule-
+ 1545  kubectl describe node worker-0 | grep Taint
+ 1546  kubectl taint nodes worker-0 node.kubernetes.io/disk-pressure:NoSchedule-
+ 1547  watch kubectl get nodes
+ 1548  kubeclt describe node worker-0
+ 1549  kubectl describe node worker-0
+ 1550  kubeclt describe node worker-0kubectl get events --all-namespaces
+ 1551  kubectl get events --all-namespaces
+ 1552  df -h 
+ 1553  sudo reboot
+ 1554  kubectl exec --it alpine-68d77464dd-bskxb alpine -- sh
+ 1555  kubectl exec --it alpine -c alpine-68d77464dd-bskxb -- /bin/sh
+ 1556  kubectl exec -it alpine -c alpine-68d77464dd-bskxb -- /bin/sh
+ 1557  kubectl exec -it alpine -c alpine -- /bin/sh
+ 1558  lxc list
+ 1559  { sudo route add -net 10.200.0.0 netmask 255.255.255.0 gw 10.165.235.217; sudo route add -net 10.200.1.0 netmask 255.255.255.0 gw 10.165.235.67; sudo route add -net 10.200.2.0 netmask 255.255.255.0 gw 10.165.235.181; }
+ 1560  {      route add -net 10.200.0.0 netmask 255.255.255.0 gw 10.165.235.217;  route add -net 10.200.1.0 netmask 255.255.255.0 gw 10.165.235.67;  route add -net 10.200.2.0 netmask 255.255.255.0 gw 10.165.235.181; }
+ 1561  sudo apt install net-tools
+ 1562  { sudo route add -net 10.200.0.0 netmask 255.255.255.0 gw 10.165.235.217; sudo route add -net 10.200.1.0 netmask 255.255.255.0 gw 10.165.235.67; sudo route add -net 10.200.2.0 netmask 255.255.255.0 gw 10.165.235.181; }
+ 1563  kubectl exec -it alpine -c alpine -- /bin/sh
+ 1564  cat pods/alpine.yml 
+ 1565  kubectl delete pods mypod1
+ 1566  routes
+ 1567  route
+ 1568  history
+ 1569  history > master_history.txt

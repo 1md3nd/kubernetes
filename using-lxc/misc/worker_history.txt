@@ -1,0 +1,280 @@
+    1  systemctl status kubelet
+    2  wget -q --show-progress --https-only --timestamping https://storage.googleapis.com/kubernetes-release/release/v1.29.0/bin/linux/amd64/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.29.0/bin/linux/amd64/kube-proxy https://storage.googleapis.com/kubernetes-release/release/v1.29.0/bin/linux/amd64/kubelet
+    3  sudo mkdir -p /etc/cni/net.d /opt/cni/bin /var/lib/kubelet /var/lib/kube-proxy /var/lib/kubernetes /var/run/kubernetes
+    4  la
+    5  chmod +x kubectl kube-proxy kubelet 
+    6  sudo mv kubectl kube-proxy kubelet runc /usr/local/bin/
+    7  ls
+    8  { wget https://github.com/containerd/containerd/releases/download/v1.6.8/containerd-1.6.8-linux-amd64.tar.gz wget https://github.com/opencontainers/runc/releases/download/v1.1.3/runc.amd64 sudo tar Cxzvf /usr/local containerd-1.6.8-linux-amd64.tar.gz; sudo install -m 755 runc.amd64 /usr/local/sbin/runc wget https://github.com/containernetworking/plugins/releases/download/v1.1.1/cni-plugins-linux-amd64-v1.1.1.tgz sudo mkdir -p /opt/cni/bin; sudo tar Cxzvf /opt/cni/bin cni-plugins-linux-amd64-v1.1.1.tgz sudo mkdir /etc/containerd containerd config default | sudo tee /etc/containerd/config.toml; sudo sed -i 's/SystemdCgroup \= false/SystemdCgroup \= true/g' /etc/containerd/config.toml sudo curl -L https://raw.githubusercontent.com/containerd/containerd/main/containerd.service -o /etc/systemd/system/containerd.service sudo systemctl daemon-reload; sudo systemctl enable --now containerd; sudo systemctl status containerd; }
+    9  POD_CIDR=10.200.0.0/24
+   10  cat <<EOF | sudo tee /etc/cni/net.d/10-bridge.conf
+   11  {
+   12      "cniVersion": "0.4.0",
+   13      "name": "bridge",
+   14      "type": "bridge",
+   15      "bridge": "cnio0",
+   16      "isGateway": true,
+   17      "ipMasq": true,
+   18      "ipam": {
+   19          "type": "host-local",
+   20          "ranges": [
+   21              [{"subnet": "${POD_CIDR}", "gateway": "${GATEWAY}"}]
+   22          ],
+   23          "routes": [{"dst": "0.0.0.0/0"}]
+   24      }
+   25  }
+   26  EOF
+   27  cat <<EOF | sudo tee /etc/cni/net.d/99-loopback.conf
+   28  {
+   29      "cniVersion": "0.4.0",
+   30      "name": "lo",
+   31      "type": "loopback"
+   32  }
+   33  EOF
+   34  sudo systemctl status containerd
+   35  cat /etc/cni/net.d
+   36  cd /etc/cni
+   37  ls
+   38  systemctl restart containerd
+   39  sudo systemctl status containerd
+   40  cd ~
+   41  # Remove the line 'ExecStartPre=/sbin/modprobe overlay' from the config.toml file
+   42  sudo sed -i '/ExecStartPre=\/sbin\/modprobe overlay/d' /etc/containerd/config.toml
+   43  cat /etc/containerd/config.toml 
+   44  sudo systemctl status containerd
+   45  cat /etc/systemd/system/containerd.service
+   46  nano /etc/systemd/system/containerd.service
+   47  systemctl restart containerd
+   48  systemctl daemon-reload
+   49  systemctl status containerd
+   50  WORKER_NAME=$(hostname -s)
+   51  echo "${WORKER_NAME}"
+   52  sudo mv ${WORKER_NAME}-key.pem ${WORKER_NAME}.pem /var/lib/kubelet/
+   53  sudo mv ${WORKER_NAME}.kubeconfig /var/lib/kubelet/kubeconfig
+   54  sudo mv ca.pem /var/lib/kubernetes/
+   55  cat <<EOF | sudo tee /var/lib/kubelet/kubelet-config.yaml
+   56  kind: KubeletConfiguration
+   57  apiVersion: kubelet.config.k8s.io/v1beta1
+   58  cgroupDriver: "systemd"
+   59  authentication:
+   60    anonymous:
+   61      enabled: false
+   62    webhook:
+   63      enabled: true
+   64    x509:
+   65      clientCAFile: "/var/lib/kubernetes/ca.pem"
+   66  authorization:
+   67    mode: Webhook
+   68  clusterDomain: "cluster.local"
+   69  clusterDNS:
+   70    - "10.32.0.10"
+   71  featureGates:
+   72    CSIMigration: false
+   73  podCIDR: "${POD_CIDR}"
+   74  resolvConf: "/run/systemd/resolve/resolv.conf"
+   75  runtimeRequestTimeout: "15m"
+   76  tlsCertFile: "/var/lib/kubelet/${WORKER_NAME}.pem"
+   77  tlsPrivateKeyFile: "/var/lib/kubelet/${WORKER_NAME}-key.pem"
+   78  EOF
+   79  cat <<EOF | sudo tee /etc/systemd/system/kubelet.service
+   80  [Unit]
+   81  Description=Kubernetes Kubelet
+   82  Documentation=https://github.com/kubernetes/kubernetes
+   83  After=containerd.service
+   84  Requires=containerd.service
+   85  [Service]
+   86  ExecStart=/usr/local/bin/kubelet \\
+   87    --config=/var/lib/kubelet/kubelet-config.yaml \\
+   88    --container-runtime=remote \\
+   89    --container-runtime-endpoint=unix:///var/run/containerd/containerd.sock \\
+   90    --image-pull-progress-deadline=2m \\
+   91    --kubeconfig=/var/lib/kubelet/kubeconfig \\
+   92    --network-plugin=cni \\
+   93    --register-node=true \\
+   94    --fail-swap-on=false \\
+   95    --v=2
+   96  Restart=on-failure
+   97  RestartSec=5
+   98  [Install]
+   99  WantedBy=multi-user.target
+  100  EOF
+  101  systemctl daemon-reload
+  102  systemctl restart kubelet
+  103  systemctl status kubelet
+  104  journalctl -u kubelet -r
+  105  cat <<EOF | sudo tee /etc/systemd/system/kubelet.service
+  106  [Unit]
+  107  Description=Kubernetes Kubelet
+  108  Documentation=https://github.com/kubernetes/kubernetes
+  109  After=containerd.service
+  110  Requires=containerd.service
+  111  [Service]
+  112  ExecStart=/usr/local/bin/kubelet \\
+  113    --config=/var/lib/kubelet/kubelet-config.yaml \\
+  114    --container-runtime-endpoint=unix:///var/run/containerd/containerd.sock \\
+  115    --image-pull-progress-deadline=2m \\
+  116    --kubeconfig=/var/lib/kubelet/kubeconfig \\
+  117    --network-plugin=cni \\
+  118    --register-node=true \\
+  119    --fail-swap-on=false \\
+  120    --v=2
+  121  Restart=on-failure
+  122  RestartSec=5
+  123  [Install]
+  124  WantedBy=multi-user.target
+  125  EOF
+  126  systemctl daemon-reload
+  127  systemctl reload kubelet
+  128  systemctl restart kubelet
+  129  systemctl status kubelet
+  130  journalctl -u kubelet -r
+  131  cat <<EOF | sudo tee /etc/systemd/system/kubelet.service
+  132  [Unit]
+  133  Description=Kubernetes Kubelet
+  134  Documentation=https://github.com/kubernetes/kubernetes
+  135  After=containerd.service
+  136  Requires=containerd.service
+  137  [Service]
+  138  ExecStart=/usr/local/bin/kubelet \\
+  139    --config=/var/lib/kubelet/kubelet-config.yaml \\
+  140    --container-runtime-endpoint=unix:///var/run/containerd/containerd.sock \\
+  141    --kubeconfig=/var/lib/kubelet/kubeconfig \\
+  142    --network-plugin=cni \\
+  143    --register-node=true \\
+  144    --fail-swap-on=false \\
+  145    --v=2
+  146  Restart=on-failure
+  147  RestartSec=5
+  148  [Install]
+  149  WantedBy=multi-user.target
+  150  EOF
+  151  systemctl daemon-reload
+  152  systemctl restart kubelet
+  153  systemctl status kubelt
+  154  systemctl status kubelet
+  155  journalctl -u kubelet -r
+  156  cat <<EOF | sudo tee /etc/systemd/system/kubelet.service
+  157  [Unit]
+  158  Description=Kubernetes Kubelet
+  159  Documentation=https://github.com/kubernetes/kubernetes
+  160  After=containerd.service
+  161  Requires=containerd.service
+  162  [Service]
+  163  ExecStart=/usr/local/bin/kubelet \\
+  164    --config=/var/lib/kubelet/kubelet-config.yaml \\
+  165    --container-runtime-endpoint=unix:///var/run/containerd/containerd.sock \\
+  166    --kubeconfig=/var/lib/kubelet/kubeconfig \\
+  167    --register-node=true \\
+  168    --fail-swap-on=false \\
+  169    --v=2
+  170  Restart=on-failure
+  171  RestartSec=5
+  172  [Install]
+  173  WantedBy=multi-user.target
+  174  EOF
+  175  systemctl daemon-reload
+  176  systemctl restart kubelet
+  177  systemctl status kubelet
+  178  journalctl -u kubelet -r
+  179  echo $POD_CIDR 
+  180  cat <<EOF | sudo tee /var/lib/kubelet/kubelet-config.yaml
+  181  kind: KubeletConfiguration
+  182  apiVersion: kubelet.config.k8s.io/v1beta1
+  183  cgroupDriver: "systemd"
+  184  authentication:
+  185    anonymous:
+  186      enabled: false
+  187    webhook:
+  188      enabled: true
+  189    x509:
+  190      clientCAFile: "/var/lib/kubernetes/ca.pem"
+  191  authorization:
+  192    mode: Webhook
+  193  clusterDomain: "cluster.local"
+  194  clusterDNS:
+  195    - "10.32.0.10"
+  196  podCIDR: "${POD_CIDR}"
+  197  resolvConf: "/run/systemd/resolve/resolv.conf"
+  198  runtimeRequestTimeout: "15m"
+  199  tlsCertFile: "/var/lib/kubelet/${WORKER_NAME}.pem"
+  200  tlsPrivateKeyFile: "/var/lib/kubelet/${WORKER_NAME}-key.pem"
+  201  EOF
+  202  cat <<EOF | sudo tee /etc/systemd/system/kubelet.service
+  203  [Unit]
+  204  Description=Kubernetes Kubelet
+  205  Documentation=https://github.com/kubernetes/kubernetes
+  206  After=containerd.service
+  207  Requires=containerd.service
+  208  [Service]
+  209  ExecStart=/usr/local/bin/kubelet \\
+  210    --config=/var/lib/kubelet/kubelet-config.yaml \\
+  211    --container-runtime-endpoint=unix:///var/run/containerd/containerd.sock \\
+  212    --kubeconfig=/var/lib/kubelet/kubeconfig \\
+  213    --register-node=true \\
+  214    --fail-swap-on=false \\
+  215    --v=2
+  216  Restart=on-failure
+  217  RestartSec=5
+  218  [Install]
+  219  WantedBy=multi-user.target
+  220  EOF
+  221  systemctl daemon-reload
+  222  systemctl restart kubelet
+  223  journalctl -u kubelet -r
+  224  hostname
+  225  hostname -i
+  226  exit 
+  227  sudo mv kube-proxy.kubeconfig /var/lib/kube-proxy/kubeconfig
+  228  cat <<EOF | sudo tee /var/lib/kube-proxy/kube-proxy-config.yaml
+  229  kind: KubeProxyConfiguration
+  230  apiVersion: kubeproxy.config.k8s.io/v1alpha1
+  231  clientConnection:
+  232    kubeconfig: "/var/lib/kube-proxy/kubeconfig"
+  233  mode: "iptables"
+  234  clusterCIDR: "10.200.0.0/16"
+  235  EOF
+  236  cat <<EOF | sudo tee /etc/systemd/system/kube-proxy.service
+  237  [Unit]
+  238  Description=Kubernetes Kube Proxy
+  239  Documentation=https://github.com/kubernetes/kubernetes
+  240  [Service]
+  241  ExecStart=/usr/local/bin/kube-proxy \\
+  242  --config=/var/lib/kube-proxy/kube-proxy-config.yaml \\
+  243  --conntrack-max-per-core=0
+  244  Restart=on-failure
+  245  RestartSec=5
+  246  [Install]
+  247  WantedBy=multi-user.target
+  248  EOF
+  249  systemctl daemon-reload
+  250  systemctl restart kube-proxy
+  251  systemctl status kube-proxy
+  252  exit
+  253  systemctl start kubelet kube-proxy containerd
+  254  exit
+  255  df -h
+  256  exit
+  257  df -h
+  258  systemctl status kube-apiserver
+  259  systemctl status kubelet
+  260  systemctl restart kubelet
+  261  systemctl status kube-proxy
+  262  systemctl status containerd
+  263  systemctl enable kubelet kube-proxy
+  264  systemctl restart kubelet kube-proxy
+  265  systemctl status kube-proxy
+  266  systemctl status kubelet
+  267  journalctl -u kube-proxy -r
+  268  journalctl -u kube-proxy -r | head -5
+  269  journalctl -u kube-proxy -r | head -7
+  270  journalctl -u kube-proxy -r | head -10
+  271  sudo sysctl -w net.netfilter.nf_conntrack_max=153000
+  272  cat /proc/sys/net/netfilter/nf_conntrack_max 
+  273  exit
+  274  systemctl restart kube-proxy
+  275  journalctl -u kube-proxy -r | head -10
+  276  journalctl -u kube-proxy -r
+  277  systemctl status kube-proxy
+  278  exit
+  279  history
+  280  history > worker_history.txt
