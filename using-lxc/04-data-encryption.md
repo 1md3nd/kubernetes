@@ -8,33 +8,48 @@ In this we will be generate an encryption key and an encryption config suitable 
 
 Generate an encryption key:
 
-    ENCRYPTION_KEY=$(head -c 32 /dev/urandom | base64)
-
+```
+ENCRYPTION_KEY=$(head -c 32 /dev/urandom | base64)
+```
 
 ## The Encryption Config File
+
 Create the encryption-config.yaml encryption config file:
 
-    cat > encryption-config.yaml <<EOF
-    kind: EncryptionConfig
-    apiVersion: v1
-    resources:
-      - resources:
-          - secrets
-        providers:
-          - aescbc:
-              keys:
-                - name: key1
-                  secret: ${ENCRYPTION_KEY}
-          - identity: {}
-    EOF
+```
+cat > encryption-config.yaml <<EOF
+kind: EncryptionConfig
+apiVersion: v1
+resources:
+  - resources:
+      - secrets
+    providers:
+      - aescbc:
+          keys:
+            - name: key1
+              secret: ${ENCRYPTION_KEY}
+      - identity: {}
+EOF
+```
 
 ![alt text](img-ref/image-17.png)
 
 ### Copy the encryption-config.yaml encryption config file to each controller instance:
 
+```
+for instance in controller-0 controller-1 controller-2; do
+lxc file push encryption-config.yaml ${instance}/root/
+done
+```
 
-    for instance in controller-0 controller-1 controller-2; do
-    lxc file push encryption-config.yaml ${instance}/root/
-    done
+CHECK
+
+```
+{
+echo controller-0 && lxc exec controller-0 ls
+echo controller-1 && lxc exec controller-1 ls
+echo controller-2 && lxc exec controller-2 ls
+}
+```
 
 ![alt text](img-ref/image-18.png)

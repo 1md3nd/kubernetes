@@ -5,21 +5,22 @@ In this case I am use an AWS EC2 instance
 Create an EC2 instance of type t2.xlarge size which will be sufficient for running 6 lxc containers each with 2 CPUs and 2Gi of memory.
 
 ### Installing the LXC on Ubuntu
-
-    sudo apt-get update && sudo apt-get install lxc -y
-    sudo systemctl status lxc
-    sudo snap install lxd 
-    lxd init
-
-
+```
+sudo apt-get update && sudo apt-get install lxc -y
+sudo systemctl status lxc
+sudo snap install lxd
+lxd init
+```
 - Default for everything except this:
-    Name of the storage backend to use (btrfs, dir, lvm) [default=btrfs]: dir
+  Name of the storage backend to use (btrfs, dir, lvm) [default=btrfs]: dir
 
 ### Let's create profile for k8s cluster
-
-    lxc profile create k8s
-    sudo lxc profile edit k8s
+```
+lxc profile create k8s
+sudo lxc profile edit k8s
+```
 ---
+
 paste this
 
     config:
@@ -48,11 +49,12 @@ paste this
             type: disk
     name: k8s
     used_by: []
+
 ---
+
     lxc profile list
 
 ![alt text](img-ref/image.png)
-
 
 ### Creating nodes for controller and worker
 
@@ -62,17 +64,21 @@ lxc launch ubuntu:22.04 controller-0 --profile k8s
 lxc launch ubuntu:22.04 controller-1 --profile k8s
 lxc launch ubuntu:22.04 controller-2 --profile k8s
 ```
+
 ![alt text](img-ref/image-1.png)
+
 #### 3 Worker nodes
 ```
 lxc launch ubuntu:22.04 worker-0 --profile k8s
 lxc launch ubuntu:22.04 worker-1 --profile k8s
 lxc launch ubuntu:22.04 worker-2 --profile k8s
 ```
+
 ![alt text](img-ref/image-2.png)
 
 #### A haproxy to server as a loadbalancer for our controllers
-<!-- 
+
+<!--
 lxc image copy images:centos/7 local: --copy-aliases
 lxc image unset-property centos/7 requirements.cgroup
 lxc launch centos/7 haproxy
@@ -80,37 +86,45 @@ lxc launch centos/7 haproxy
     lxc launch images:centos/7 haproxy -->
 
     lxc launch images:ubuntu:22.04 haproxy
+
 ![alt text](img-ref/image-3.png)
+
 ### Setup the haproxy
 
 - login in haproxy container
+
 ---
+
     lxc exec haproxy bash
+
 ---
+
     apt-get update
     apt install -y haproxy net-tools
 
 ---
+
 ---
+
 If the outgoing traffic is not working
 
-    for ipt in iptables iptables-legacy ip6tables ip6tables-legacy; do 
-    sudo $ipt --flush; 
+    for ipt in iptables iptables-legacy ip6tables ip6tables-legacy; do
+    sudo $ipt --flush;
     sudo $ipt --flush -t nat;
     sudo $ipt --delete-chain;
-    sudo $ipt --delete-chain -t nat; 
-    sudo $ipt -P FORWARD ACCEPT; 
-    sudo $ipt -P INPUT ACCEPT; 
-    sudo $ipt -P OUTPUT ACCEPT; 
+    sudo $ipt --delete-chain -t nat;
+    sudo $ipt -P FORWARD ACCEPT;
+    sudo $ipt -P INPUT ACCEPT;
+    sudo $ipt -P OUTPUT ACCEPT;
     done
-    sudo  systemctl reload snap.lxd.daemon 
+    sudo  systemctl reload snap.lxd.daemon
 
 add line to config files
 
     nano /etc/haproxy/haproxy.cfg
 
-add to the end to the file
--
+## add to the end to the file
+
     frontend k8s
         bind 10.210.42.222:6443
         mode tcp
@@ -125,22 +139,22 @@ add to the end to the file
             server controller-1 10.210.42.87:6443 check
             server controller-2 10.210.42.137:6443 check
 
-start the haproxy
----
+## start the haproxy
 
     systemctl restart haproxy
 
-check
----
+## check
+
     systemctl enable haproxy
     systemctl status haproxy
     netstat -nltp
-![alt text](img-ref/image-4.png)
 
+![alt text](img-ref/image-4.png)
 
 # Installing the Client Tools
 
 ##### In this lab we will install the command line utilites required to complete the setup:
+
 - cfssl
 - cfssljson
 - kubectl
@@ -155,34 +169,111 @@ The cfssl and cfssljson command line utilities will be used to provision a PKI I
 
     wget -q --show-progress --https-only --timestamping \
     https://github.com/cloudflare/cfssl/releases/download/v1.6.0/cfssl_1.6.0_linux_amd64  -O cfssl
+
 ---
+
     wget -q --show-progress --https-only --timestamping \
     https://github.com/cloudflare/cfssl/releases/download/v1.6.0/cfssljson_1.6.0_linux_amd64 -O cfssljson
+
 ---
+
     chmod +x cfssl cfssljson
 
     sudo mv cfssl cfssljson /usr/local/bin/
 
 ### Verification
+
 Verify cfssl and cfssljson version, must higher than 1.4.1:
 
     cfssl version
 
     cfssljson --version
+
 ![alt text](img-ref/image-5.png)
-## 2. Install kubectl
+
+## Install kubectl binary with curl on Linux
 
 Kubernetes provides a command line tool for communicating with a Kubernetes cluster's control plane, using the Kubernetes API.
 
-#### Linux
+---
 
-    wget https://storage.googleapis.com/kubernetes-release/release/v1.12.0/bin/linux/amd64/kubectl
+1. Download the latest release with the command:
+
+<details>
+<summary>x86-64</summary>
+
+```
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+```
+
+</details>
+
+<details>
+<summary>ARM64</summary>
+
+```
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/arm64/kubectl"
+```
+
+</details>
+
+---
+
+2. Validate the binary (optional)
+
+<details>
+<summary>x86-64</summary>
+
+```
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
+```
+
+</details>
+
+<details>
+<summary>ARM64</summary>
+
+```
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/arm64/kubectl.sha256"
+
+```
+
+</details>
+
+Validate the kubectl binary against the checksum file:
+
+```
+echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
+```
+
+If valid, the output is:
+
+```
+kubectl: OK
+```
+
+3. Install kubectl
+
+```
+chmod +x kubectl
+
+sudo mv kubectl /usr/local/bin/
+```
+
+- Note:
+
+If you do not have root access on the target system, you can still install kubectl to the ~/.local/bin directory:
 
     chmod +x kubectl
+    mkdir -p ~/.local/bin
+    mv ./kubectl ~/.local/bin/kubectl
 
-    sudo mv kubectl /usr/local/bin/
+    # and then append (or prepend) ~/.local/bin to $PATH
 
-### Verify
+4. Verify
 
-    kubectl version --client
-![alt text](img-ref/image-6.png)
+```
+kubectl version --client
+```
+
+## ![alt text](img-ref/image-6.png)
