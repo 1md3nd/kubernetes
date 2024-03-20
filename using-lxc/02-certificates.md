@@ -24,7 +24,7 @@ In this lab we are going to use `cfssl` to create a Certificate Authority, so th
 - kube-apiserver’s kubelet client certificate
 - kubelet client certificate
 
-## Certificate Authority
+## 1. Certificate Authority
 
 In this we are going to provision a Certficate Authority that will be used to generate additional TLS Certificates.
 
@@ -75,9 +75,10 @@ cfssl gencert -initca ca-csr.json | cfssljson -bare ca
 ```
 
 OUTPUT
+
 ![alt text](img-ref/image-7.png)
 
-2. Client and Server Certificates
+## 2. Client and Server Certificates
 
 In this section you will generate client and server certificates for each Kubernetes component and a client certificate for the Kubernetes admin user.
 The Admin Client Certificate
@@ -437,6 +438,7 @@ echo worker-2 && lxc exec worker-2 ls
 ```
 
 RESULT
+
 ![alt text](img-ref/image-10.png)
 
 ### 2. Transfer all the associate key of controller to controller
@@ -460,7 +462,3 @@ echo controller-2 && lxc exec controller-2 ls
 RESULT
 
 ![alt text](img-ref/image-11.png)
-
-```
-
-```
