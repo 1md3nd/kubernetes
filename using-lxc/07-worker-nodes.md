@@ -273,4 +273,21 @@ systemctl restart kube-proxy
 
 #### PROBLEMS
 
-![alt text](image.png)
+1. If kube-proxy not active
+
+```
+Mar 20 06:06:08 worker-0 systemd[1]: kube-proxy.service: Failed with result 'exit-code'.
+Mar 20 06:06:08 worker-0 systemd[1]: kube-proxy.service: Main process exited, code=exited, status=1/FAILURE
+Mar 20 06:06:07 worker-0 kube-proxy[713]: E0320 06:06:07.993762     713 run.go:74] "command failed" err="open /proc/sys/net/netfilter/nf_conntrack_max: permission denied"
+Mar 20 06:06:07 worker-0 kube-proxy[713]: E0320 06:06:07.993584     713 server.go:556] "Error running ProxyServer" err="open /proc/sys/net/netfilter/nf_conntrack_max: permission denied"
+Mar 20 06:06:07 worker-0 kube-proxy[713]: I0320 06:06:07.993333     713 conntrack.go:118] "Set sysctl" entry="net/netfilter/nf_conntrack_max" value=131072
+```
+
+this error means that kube-proxy don't have permission to edit the `/proc/sys/net/netfilter/nf_conntrack_max `
+it will only try to set some value i.e 131072 only if its original value is less that that.
+
+So to fix this we will set this value to higher number in our host machine
+
+```
+sudo sysctl net/netfilter/nf_conntrack_max=131072
+```
