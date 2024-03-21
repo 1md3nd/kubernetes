@@ -2,6 +2,10 @@
 
 Kubernetes components are stateless and store cluster state in etcd. In this lab you will bootstrap a three node etcd cluster and configure it for high availability and secure remote access.
 
+### Refs
+- Configutations : https://etcd.io/docs/v3.4/op-guide/configuration/
+- MultiNode Setup : https://github.com/etcd-io/etcd/tree/main/contrib/systemd/etcd3-multinode
+- YT : https://www.youtube.com/watch?v=uC1WPxFzISQ
 ## Prerequisites
 
 The commands must be run on each controller instance:
