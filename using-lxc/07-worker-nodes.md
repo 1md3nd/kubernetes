@@ -56,6 +56,10 @@ sudo curl -L https://raw.githubusercontent.com/containerd/containerd/main/contai
 }
 ```
 ## Configure CNI Networking
+### Refs
+- CNI : https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/
+- YT : https://www.youtube.com/watch?v=-Si8Ei-JkOA
+
 Retrieve the Pod CIDR range for the current container:
 
     - worker-0
@@ -101,6 +105,10 @@ Create the loopback network configuration file:
 
 
 ## Configure containerd
+### Refs
+- Config : https://github.com/containerd/containerd/blob/main/docs/man/containerd-config.toml.5.md
+- YT : https://www.youtube.com/watch?v=AP630LvIs0o&pp=ygURY29udGFpbmVyZCBjb25maWc%3D
+
 Create the containerd configuration file:
 ```
 sudo mkdir -p /etc/containerd/
@@ -163,14 +171,17 @@ EOF
 ```
 
 ## Configure the Kubelet
-    
-    WORKER_NAME=$(hostname -s)
-    echo "${WORKER_NAME}"
+### Refs
+- Config : https://kubernetes.io/docs/tasks/administer-cluster/kubelet-config-file/
+- YT : https://www.youtube.com/watch?v=Hifzn_rB1pU
+```
+WORKER_NAME=$(hostname -s)
+echo "${WORKER_NAME}"
 
-    sudo mv ${WORKER_NAME}-key.pem ${WORKER_NAME}.pem /var/lib/kubelet/
-    sudo mv ${WORKER_NAME}.kubeconfig /var/lib/kubelet/kubeconfig
-    sudo mv ca.pem /var/lib/kubernetes/
-
+sudo mv ${WORKER_NAME}-key.pem ${WORKER_NAME}.pem /var/lib/kubelet/
+sudo mv ${WORKER_NAME}.kubeconfig /var/lib/kubelet/kubeconfig
+sudo mv ca.pem /var/lib/kubernetes/
+```
 
 Create the kubelet-config.yaml configuration file:
 
@@ -231,9 +242,13 @@ EOF
     systemctl daemon-reload
     systemctl restart kubelet -->
 ## Configure the Kubernetes Proxy
+### Refs
+- Config : https://kubernetes.io/docs/reference/command-line-tools-reference/kube-proxy/
+- YT : https://www.youtube.com/watch?v=Cc0bFTAoOMs&pp=ygUQa3ViZXByb3h5IGNvbmZpZw%3D%3D
 
-    sudo mv kube-proxy.kubeconfig /var/lib/kube-proxy/kubeconfig
-
+```
+sudo mv kube-proxy.kubeconfig /var/lib/kube-proxy/kubeconfig
+```
 Create the kube-proxy-config.yaml configuration file:
 ```
 cat <<EOF | sudo tee /var/lib/kube-proxy/kube-proxy-config.yaml
