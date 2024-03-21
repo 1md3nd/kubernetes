@@ -11,9 +11,9 @@ Now we will be setting up the Kubernetes control plane across three containers a
 ## Provision the Kubernetes Control Plane
 
 > Create the Kubernetes configuration directory:
-
-    sudo mkdir -p /etc/kubernetes/config
-
+```
+sudo mkdir -p /etc/kubernetes/config
+```
 ## Download and Install the Kubernetes Controller Binaries
 
 > Download the official Kubernetes release binaries:
@@ -37,6 +37,9 @@ sudo mv kube-apiserver kube-controller-manager kube-scheduler kubectl /usr/local
 
 ## Configure the Kubernetes API Server
 
+### Refs
+- Configurations : https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/
+- YT : https://www.youtube.com/watch?v=biK9ChC4Cuc
 > Move necessary files:
 
 ```
@@ -146,6 +149,10 @@ EOF
 
 ## Configure the Kubernetes Controller Manager
 
+### Refs
+- Configuration : https://kubernetes.io/docs/reference/command-line-tools-reference/kube-controller-manager/
+- YT : https://www.youtube.com/watch?v=0YZdKdQUupA
+
 Move necessary files:
 
 ```
@@ -181,7 +188,11 @@ WantedBy=multi-user.target
 EOF
 ```
 
-## Configure the Kubernetes Scheduler
+## Configure the Kube-Scheduler
+
+### Refs
+- Configurations : https://kubernetes.io/docs/reference/command-line-tools-reference/kube-scheduler/
+- YT: https://www.youtube.com/watch?v=0YZdKdQUupA
 
 Move the kube-scheduler kubeconfig into place:
 
